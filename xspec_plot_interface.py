@@ -15,7 +15,8 @@ from PyQt5.QtWidgets import (
     QAction,  # Creates action for menu items
     QFrame,  # Creates frame
     QDialog,  # Creates dialog
-    QDialogButtonBox  # Creates button box for dialog
+    QDialogButtonBox,  # Creates button box for dialog
+    QComboBox  # Creates dropdown
 )
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import (
@@ -69,10 +70,14 @@ class MainWindow(QMainWindow):
         use_textboxes_action = QAction('Use Textboxes for Parameters', self, checkable=True)
         include_background_action = QAction('Include Background For Data', self, checkable=True)
         set_axes_limits_action = QAction('Set Axes Limits', self)
+        plot_components_action = QAction('Plot Different Components', self)
+        select_plot_action = QAction('Select What to Plot', self)
         view_menu.addAction(freeze_axes_action)
         view_menu.addAction(use_textboxes_action)
         view_menu.addAction(include_background_action)
         view_menu.addAction(set_axes_limits_action)
+        view_menu.addAction(plot_components_action)
+        view_menu.addAction(select_plot_action)
         set_axes_limits_action.triggered.connect(self.set_axes_limits)
 
         # Connect actions to methods (placeholders)
@@ -84,6 +89,8 @@ class MainWindow(QMainWindow):
         freeze_axes_action.triggered.connect(lambda: self.toggle_option('Freeze Axes'))
         use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Textboxes for Parameters'))
         include_background_action.triggered.connect(self.toggle_background_visibility)
+        plot_components_action.triggered.connect(self.plot_different_components)
+        select_plot_action.triggered.connect(self.open_select_plot_dialog)
 
         # Initialize layout components
         main_layout = QHBoxLayout()
@@ -129,6 +136,7 @@ class MainWindow(QMainWindow):
         # Initialize background visibility state
         self.include_background = False
         self.loaded = False
+        self.what_to_plot = 'model'
 
     def load_model(self):
         """
@@ -352,7 +360,7 @@ class MainWindow(QMainWindow):
         if AllData.nSpectra > 0:
             Plot("ldata")
         else:
-            Plot("model")  # Load the model
+            Plot(self.what_to_plot)  # Load the model
 
         # Extract data from XSPEC plot
         x = Plot.x()
@@ -366,10 +374,10 @@ class MainWindow(QMainWindow):
         self.ax.clear()
 
         # Generate the plot
-        self.ax.plot(x, y, label="Model")
+        self.ax.plot(x, y, label=self.what_to_plot)
         self.ax.set_xlabel("Energy (keV)")
         self.ax.set_ylabel("Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$")
-        self.ax.set_title(f"Plot of {self.model_name} model")
+        self.ax.set_title(f"Plot of {self.model_name} {self.what_to_plot}")
         self.ax.set_xscale('log')
         self.ax.set_yscale('log')
 
@@ -595,6 +603,83 @@ class MainWindow(QMainWindow):
         except ValueError:
             QMessageBox.warning(self, 'Invalid Input', 'Please enter valid numbers for the axes limits.')
 
+
+    def plot_different_components(self):
+        """
+        Plot the different components of the model separately.
+        """
+        if not hasattr(self, 'model'):
+            QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
+            return
+
+        # Clear previous plot
+        self.ax.clear()
+
+        # Store original model parameters
+        original_params = {}
+
+        # Iterate over each component
+        for component in self.comps:
+            # Check if the component has a 'norm' attribute
+            if hasattr(getattr(self.model, component), 'norm'):
+                # Store original normalization value
+                original_params[component] = getattr(self.model, component).norm
+
+                # Set all other components' normalization to 0
+                for other_component in self.comps:
+                    if other_component != component and hasattr(getattr(self.model, other_component), 'norm'):
+                        getattr(self.model, other_component).norm = 0
+
+                # Plot the data
+                Plot('model')
+                x = Plot.x()
+                y = Plot.model()
+
+                # Plot the component
+                self.ax.plot(x, y, label=f'Component {component}', color=SPECTRUM_COLORS[self.comps.index(component) % len(SPECTRUM_COLORS)])
+
+                # Restore original normalization values
+                for comp, norm in original_params.items():
+                    getattr(self.model, comp).norm = norm
+
+        # Set plot labels and title
+        self.ax.set_xlabel('Energy (keV)')
+        self.ax.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')
+        self.ax.set_title('Plot of Different Model Components')
+        self.ax.set_xscale('log')
+        self.ax.set_yscale('log')
+        self.ax.legend()
+
+        # Refresh canvas
+        self.canvas.draw()
+
+    def open_select_plot_dialog(self):
+        """
+        Open a dialog to select what to plot.
+        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Select What to Plot')
+        layout = QVBoxLayout()
+
+        # Create a dropdown for plot options
+        dropdown = QComboBox()
+        dropdown.addItems(['model', 'emodel', 'eemodel'])
+        dropdown.setCurrentText(self.what_to_plot)
+
+        # Connect dropdown selection to update the attribute
+        dropdown.currentTextChanged.connect(lambda text: setattr(self, 'what_to_plot', text))
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(lambda: [dialog.accept(), self.update_plot()])
+        buttons.rejected.connect(dialog.reject)
+
+        # Add widgets to layout
+        layout.addWidget(dropdown)
+        layout.addWidget(buttons)
+        dialog.setLayout(layout)
+
+        dialog.exec_()
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
