@@ -16,7 +16,8 @@ from PyQt5.QtWidgets import (
     QFrame,  # Creates frame
     QDialog,  # Creates dialog
     QDialogButtonBox,  # Creates button box for dialog
-    QComboBox  # Creates dropdown
+    QComboBox,  # Creates dropdown
+    QScrollArea  # Creates scroll area
 )
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import (
@@ -96,6 +97,13 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout()
         left_panel = QVBoxLayout()
 
+        # Create a scroll area for the left panel
+        left_panel_scroll_area = QScrollArea()
+        left_panel_widget = QWidget()
+        left_panel_widget.setLayout(left_panel)
+        left_panel_scroll_area.setWidget(left_panel_widget)
+        left_panel_scroll_area.setWidgetResizable(True)
+
         # Model selection components
         self.model_label = QLabel("Enter Model:")
         self.model_textbox = QLineEdit()
@@ -120,12 +128,14 @@ class MainWindow(QMainWindow):
         # Add stretch to left panel
         left_panel.addStretch()
 
+        # Add the left panel scroll area to the main layout
+        main_layout.addWidget(left_panel_scroll_area, stretch=1)
+
         # Plot area setup
         self.canvas = FigureCanvas(Figure())
         self.ax = self.canvas.figure.add_subplot(111)
 
         # Add components to main layout
-        main_layout.addLayout(left_panel, stretch=1)
         main_layout.addWidget(self.canvas, stretch=3)
 
         # Set central widget
@@ -153,7 +163,7 @@ class MainWindow(QMainWindow):
             self.clear_sliders()
 
             # Clear existing horizontal lines and labels
-            left_panel = self.centralWidget().layout().itemAt(0).layout()
+            left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
             for i in reversed(range(left_panel.count())):
                 item = left_panel.itemAt(i)
                 widget = item.widget()
@@ -211,12 +221,12 @@ class MainWindow(QMainWindow):
                         # Use textboxes for parameter input
                         if not self.param_textboxes:
                             for slider in self.param_sliders:
-                                left_panel = self.centralWidget().layout().itemAt(0).layout()
+                                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
                                 left_panel.removeWidget(slider)
                                 slider.deleteLater()
                             self.param_sliders.clear()
                             for label in self.param_labels:
-                                left_panel = self.centralWidget().layout().itemAt(0).layout()
+                                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
                                 left_panel.removeWidget(label)
                                 label.deleteLater()
                             self.param_labels.clear()
@@ -224,7 +234,7 @@ class MainWindow(QMainWindow):
                         label = QLabel(f"{param.name}: {param.values[0]:.3f}")
                         textbox = QLineEdit(str(param.values[0]))
                         textbox.editingFinished.connect(lambda tb=textbox, p=param: setattr(p, 'values', [float(tb.text())]))
-                        left_panel = self.centralWidget().layout().itemAt(0).layout()
+                        left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
                         left_panel.insertWidget(counter * 2, label)
                         left_panel.insertWidget(counter * 2 + 1, textbox)
                         self.param_textboxes.append(textbox)
@@ -232,13 +242,13 @@ class MainWindow(QMainWindow):
                     else:
                         # Use sliders for parameter input
                         for textbox in self.param_textboxes:
-                            left_panel = self.centralWidget().layout().itemAt(0).layout()
+                            left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
                             left_panel.removeWidget(textbox)
                             textbox.deleteLater()
                         self.param_textboxes.clear()
                         slider, scale_factor, precision_factor = self.create_slider(param)
                         slider.valueChanged.connect(lambda value, p=param, l=label, sf=scale_factor, pf=precision_factor: self.update_param_label(value, p, l, sf, pf))
-                        left_panel = self.centralWidget().layout().itemAt(0).layout()
+                        left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
                         left_panel.insertWidget(counter * 2, label)
                         left_panel.insertWidget(counter * 2 + 1, slider)
                         self.param_sliders.append(slider)
@@ -251,7 +261,7 @@ class MainWindow(QMainWindow):
                 line = QFrame()
                 line.setFrameShape(QFrame.HLine)
                 line.setFrameShadow(QFrame.Sunken)
-                left_panel = self.centralWidget().layout().itemAt(0).layout()
+                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
                 left_panel.insertWidget(counter * 2, line)
 
             # Hide the label and textbox after loading the model
@@ -281,7 +291,7 @@ class MainWindow(QMainWindow):
         """
         Clear all sliders and labels from the layout, and reset parameter lists.
         """
-        left_panel = self.centralWidget().layout().itemAt(0).layout()
+        left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
         for slider, label in zip(self.param_sliders, self.param_labels):
             left_panel.removeWidget(slider)
             left_panel.removeWidget(label)
