@@ -628,12 +628,15 @@ class MainWindow(QMainWindow):
         # Store original model parameters
         original_params = {}
 
-        # Iterate over each component
         for component in self.comps:
             # Check if the component has a 'norm' attribute
             if hasattr(getattr(self.model, component), 'norm'):
-                # Store original normalization value
-                original_params[component] = getattr(self.model, component).norm
+             # Store original normalization value
+                original_params[component] = getattr(self.model, component).norm.values[0]
+
+        for component in self.comps:
+            # Check if the component has a 'norm' attribute
+            if hasattr(getattr(self.model, component), 'norm'):
 
                 # Set all other components' normalization to 0
                 for other_component in self.comps:
