@@ -654,11 +654,16 @@ class MainWindow(QMainWindow):
                 y = Plot.model()
 
                 # Plot the component
-                self.ax.plot(x, y, label=f'Component {component}', color=SPECTRUM_COLORS[self.comps.index(component) % len(SPECTRUM_COLORS)])
+                self.ax.plot(x, y, label=f'{component}', color=SPECTRUM_COLORS[self.comps.index(component) % len(SPECTRUM_COLORS)])
 
                 # Restore original normalization values
                 for comp, norm in original_params.items():
                     getattr(self.model, comp).norm = norm
+
+        # Plot data if available
+        if AllData.nSpectra >= 1:
+            for i in range(AllData.nSpectra):
+                self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
 
         # Set plot labels and title
         self.ax.set_xlabel('Energy (keV)')
