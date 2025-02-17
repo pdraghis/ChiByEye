@@ -386,7 +386,12 @@ class MainWindow(QMainWindow):
         # Generate the plot
         self.ax.plot(x, y, label=self.what_to_plot)
         self.ax.set_xlabel("Energy (keV)")
-        self.ax.set_ylabel("Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$")
+        if self.what_to_plot == "model":
+            self.ax.set_ylabel(r"$\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1}$")
+        elif self.what_to_plot == "emodel":
+            self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
+        elif self.what_to_plot == "eemodel":
+            self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
         self.ax.set_title(f"Plot of {self.model_name} {self.what_to_plot}")
         self.ax.set_xscale('log')
         self.ax.set_yscale('log')
