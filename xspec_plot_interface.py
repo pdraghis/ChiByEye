@@ -17,13 +17,16 @@ from PyQt5.QtWidgets import (
     QDialog,  # Creates dialog
     QDialogButtonBox,  # Creates button box for dialog
     QComboBox,  # Creates dropdown
-    QScrollArea  # Creates scroll area
+    QScrollArea,  # Creates scroll area
+    QInputDialog  # Creates input dialog
 )
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvasQTAgg as FigureCanvas,
 )  # Allows embedding Matplotlib plots in PyQt
 from matplotlib.figure import Figure  # Used to create the Matplotlib figure
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 from xspec import *
 
 # Define a list of colors for plotting spectra
@@ -73,13 +76,16 @@ class MainWindow(QMainWindow):
         set_axes_limits_action = QAction('Set Axes Limits', self)
         plot_components_action = QAction('Plot Different Components', self)
         select_plot_action = QAction('Select What to Plot', self)
+        plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
         view_menu.addAction(freeze_axes_action)
         view_menu.addAction(use_textboxes_action)
         view_menu.addAction(include_background_action)
         view_menu.addAction(set_axes_limits_action)
         view_menu.addAction(plot_components_action)
         view_menu.addAction(select_plot_action)
+        view_menu.addAction(plot_n_times_action)  # Add new action
         set_axes_limits_action.triggered.connect(self.set_axes_limits)
+        plot_n_times_action.triggered.connect(self.plot_same_curve_n_times)  # Connect new action
 
         # Connect actions to methods (placeholders)
         load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  # Updated connection
@@ -701,6 +707,123 @@ class MainWindow(QMainWindow):
         layout.addWidget(dropdown)
         layout.addWidget(buttons)
         dialog.setLayout(layout)
+
+        dialog.exec_()
+
+    def plot_same_curve_n_times(self):
+        """
+        Display a dialog to input parameters and plot the same curve multiple times.
+        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Plot same curve N times")
+
+        layout = QVBoxLayout()
+
+        # Dropdown for selecting parameter
+        param_label = QLabel("Select parameter:")
+        param_combo = QComboBox()
+        param_combo.addItems(self.labels)  # Assuming self.labels contains model parameters
+        layout.addWidget(param_label)
+        layout.addWidget(param_combo)
+
+        # Input for parameter min
+        param_min_label = QLabel("Parameter min:")
+        param_min_input = QLineEdit()
+        layout.addWidget(param_min_label)
+        layout.addWidget(param_min_input)
+
+        # Input for parameter max
+        param_max_label = QLabel("Parameter max:")
+        param_max_input = QLineEdit()
+        layout.addWidget(param_max_label)
+        layout.addWidget(param_max_input)
+
+        # Input for number of curves
+        n_label = QLabel("Number of curves:")
+        n_input = QLineEdit()
+        layout.addWidget(n_label)
+        layout.addWidget(n_input)
+
+        # Choice for spacing
+        spacing_label = QLabel("Spacing:")
+        spacing_combo = QComboBox()
+        spacing_combo.addItems(["linear", "logarithmic"])
+        layout.addWidget(spacing_label)
+        layout.addWidget(spacing_combo)
+
+        # Button box
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(button_box)
+
+        dialog.setLayout(layout)
+
+        def on_accept():
+            selected_param = param_combo.currentText()
+            param_min = float(param_min_input.text()) if param_min_input.text() else 0
+            param_max = float(param_max_input.text()) if param_max_input.text() else 1
+            n = int(n_input.text()) if n_input.text() else 1
+            spacing = spacing_combo.currentText()
+
+            if not hasattr(self, 'model'):
+                QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
+                return
+
+            # Clear previous plot
+            self.ax.clear()
+
+            # Determine color normalization based on spacing
+            if spacing == "linear":
+                norm = mcolors.Normalize(vmin=param_min, vmax=param_max)
+            else:
+                norm = mcolors.LogNorm(vmin=param_min, vmax=param_max)
+
+            # Generate colors
+            values = np.linspace(param_min, param_max, n)
+            cmap = cm.get_cmap('plasma')
+            colors = cmap(norm(values))
+
+            # Plot the same curve N times with specified spacing and colors
+            Plot('model')
+            x = Plot.x()
+            y = Plot.model()
+            for i in range(n):
+                # Adjust the model parameter
+                param_value = param_min + i * (param_max - param_min) / (n - 1) if spacing == "linear" else param_min * (param_max / param_min) ** (i / (n - 1))
+                component_name = selected_param.split('_')[1] if '_' in selected_param else None
+                param_name = selected_param.split('_')[0]
+                if component_name:
+                    setattr(getattr(self.model, component_name), param_name, param_value)
+                else:
+                    setattr(self.model, param_name, param_value)
+
+                # Recalculate the model
+                Plot('model')
+                y = Plot.model()
+
+                # Plot the curve
+                self.ax.plot(x, y, label=f'{self.model_name} ({selected_param}={param_value:.2f})', linestyle='--', color=colors[i])
+
+            # Restore original parameter values
+            if component_name:
+                setattr(getattr(self.model, component_name), param_name, param_min)
+            else:
+                setattr(self.model, param_name, param_min)
+
+            # Set plot labels and title
+            self.ax.set_xlabel('Energy (keV)')
+            self.ax.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')
+            self.ax.set_title('Repeated Plot of Model')
+            self.ax.set_xscale('log')
+            self.ax.set_yscale('log')
+            self.ax.legend()
+
+            # Refresh canvas
+            self.canvas.draw()
+
+            dialog.accept()
+
+        button_box.accepted.connect(on_accept)
+        button_box.rejected.connect(dialog.reject)
 
         dialog.exec_()
 
