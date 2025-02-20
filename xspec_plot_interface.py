@@ -18,7 +18,6 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,  # Creates button box for dialog
     QComboBox,  # Creates dropdown
     QScrollArea,  # Creates scroll area
-    QInputDialog  # Creates input dialog
 )
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import (
@@ -719,12 +718,25 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
 
+        # Compute the parameter-to-component dictionary dynamically
+        param_to_component = {}
+        for i, component in enumerate(self.comps):
+            for j, param in enumerate(self.labels_in_comps[i]):
+                param_to_component[f'{param}_{component}'] = component
+
         # Dropdown for selecting parameter
         param_label = QLabel("Select parameter:")
         param_combo = QComboBox()
-        param_combo.addItems(self.labels)  # Assuming self.labels contains model parameters
+        param_combo.addItems(list(param_to_component.keys()))  # Assuming self.labels contains model parameters
         layout.addWidget(param_label)
         layout.addWidget(param_combo)
+
+        # Choice for spacing
+        spacing_label = QLabel("Spacing:")
+        spacing_combo = QComboBox()
+        spacing_combo.addItems(["linear", "logarithmic"])
+        layout.addWidget(spacing_label)
+        layout.addWidget(spacing_combo)
 
         # Input for parameter min
         param_min_label = QLabel("Parameter min:")
@@ -744,13 +756,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(n_label)
         layout.addWidget(n_input)
 
-        # Choice for spacing
-        spacing_label = QLabel("Spacing:")
-        spacing_combo = QComboBox()
-        spacing_combo.addItems(["linear", "logarithmic"])
-        layout.addWidget(spacing_label)
-        layout.addWidget(spacing_combo)
-
         # Button box
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         layout.addWidget(button_box)
@@ -759,9 +764,9 @@ class MainWindow(QMainWindow):
 
         def on_accept():
             selected_param = param_combo.currentText()
-            param_min = float(param_min_input.text()) if param_min_input.text() else 0
-            param_max = float(param_max_input.text()) if param_max_input.text() else 1
-            n = int(n_input.text()) if n_input.text() else 1
+            param_min = float(param_min_input.text())
+            param_max = float(param_max_input.text())
+            n = int(n_input.text())
             spacing = spacing_combo.currentText()
 
             if not hasattr(self, 'model'):
@@ -783,31 +788,29 @@ class MainWindow(QMainWindow):
             colors = cmap(norm(values))
 
             # Plot the same curve N times with specified spacing and colors
-            Plot('model')
-            x = Plot.x()
-            y = Plot.model()
             for i in range(n):
                 # Adjust the model parameter
-                param_value = param_min + i * (param_max - param_min) / (n - 1) if spacing == "linear" else param_min * (param_max / param_min) ** (i / (n - 1))
-                component_name = selected_param.split('_')[1] if '_' in selected_param else None
-                param_name = selected_param.split('_')[0]
-                if component_name:
-                    setattr(getattr(self.model, component_name), param_name, param_value)
+                if spacing == "linear":
+                    param_value = param_min + i * (param_max - param_min) / (n - 1)
                 else:
-                    setattr(self.model, param_name, param_value)
+                    param_value = param_min * (param_max / param_min) ** (i / (n - 1))
 
-                # Recalculate the model
+                # Use the dictionary to get the component name
+                component_name = param_to_component.get(selected_param)
+                param_name = selected_param.split('_')[0]
+                param_obj = getattr(getattr(self.model, component_name), param_name)
+                param_obj.values = [param_value] + param_obj.values[1:]
+
+                # Recalculate the model using self.model
                 Plot('model')
+                x = Plot.x()
                 y = Plot.model()
 
                 # Plot the curve
-                self.ax.plot(x, y, label=f'{self.model_name} ({selected_param}={param_value:.2f})', linestyle='--', color=colors[i])
+                self.ax.plot(x, y, label=f'{selected_param}={param_value:.2f}', linestyle='--', color=colors[i])
 
             # Restore original parameter values
-            if component_name:
-                setattr(getattr(self.model, component_name), param_name, param_min)
-            else:
-                setattr(self.model, param_name, param_min)
+            param_obj.values[0] = param_min
 
             # Set plot labels and title
             self.ax.set_xlabel('Energy (keV)')
