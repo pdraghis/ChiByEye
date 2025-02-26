@@ -675,7 +675,12 @@ class MainWindow(QMainWindow):
 
         # Set plot labels and title
         self.ax.set_xlabel('Energy (keV)')
-        self.ax.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')
+        if self.what_to_plot == "model":
+            self.ax.set_ylabel(r"$\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1}$")
+        elif self.what_to_plot == "emodel":
+            self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
+        elif self.what_to_plot == "eemodel":
+            self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
         self.ax.set_title('Plot of Different Model Components')
         self.ax.set_xscale('log')
         self.ax.set_yscale('log')
@@ -817,7 +822,12 @@ class MainWindow(QMainWindow):
 
             # Set plot labels and title
             self.ax.set_xlabel('Energy (keV)')
-            self.ax.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')
+            if self.what_to_plot == "model":
+                self.ax.set_ylabel(r"$\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1}$")
+            elif self.what_to_plot == "emodel":
+                self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
+            elif self.what_to_plot == "eemodel":
+                self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
             self.ax.set_title('Repeated Plot of Model')
             self.ax.set_xscale('log')
             self.ax.set_yscale('log')
