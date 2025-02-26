@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,  # Creates message box
     QAction,  # Creates action for menu items
     QFrame,  # Creates frame
-    QDialog,  # Creates dialog
+    QDialog,  # Creates dialog\
     QDialogButtonBox,  # Creates button box for dialog
     QComboBox,  # Creates dropdown
     QScrollArea,  # Creates scroll area
@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
         use_textboxes_action = QAction('Use Textboxes for Parameters', self, checkable=True)
         include_background_action = QAction('Include Background For Data', self, checkable=True)
         set_axes_limits_action = QAction('Set Axes Limits', self)
-        plot_components_action = QAction('Plot Different Components', self)
+        plot_components_action = QAction('Plot Different Components', self, checkable=True)
         select_plot_action = QAction('Select What to Plot', self)
         plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
         view_menu.addAction(freeze_axes_action)
@@ -94,8 +94,8 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         freeze_axes_action.triggered.connect(lambda: self.toggle_option('Freeze Axes'))
         use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Textboxes for Parameters'))
-        include_background_action.triggered.connect(self.toggle_background_visibility)
-        plot_components_action.triggered.connect(self.plot_different_components)
+        include_background_action.triggered.connect(lambda: self.toggle_option('Include Background'))
+        plot_components_action.triggered.connect(lambda: self.toggle_option('Plot Different Components'))
         select_plot_action.triggered.connect(self.open_select_plot_dialog)
 
         # Initialize layout components
@@ -150,15 +150,18 @@ class MainWindow(QMainWindow):
 
         # Initialize background visibility state
         self.include_background = False
-        self.loaded = False
+        self.is_model_loaded = False
         self.what_to_plot = 'model'
+        self.use_textboxes_selected = False
+        self.plot_components_selected = False
+        self.freeze_axes_selected = False
 
     def load_model(self):
         """
         Load the XSPEC model entered in the textbox, initialize UI elements (sliders or textboxes)
         for model parameters, and update the plot.
         """
-        if not self.loaded:
+        if not self.is_model_loaded:
             # Retrieve the model name from the textbox and initialize the model
             self.model_name = self.model_textbox.text().strip()
             self.model = Model(self.model_name)
@@ -363,63 +366,66 @@ class MainWindow(QMainWindow):
         """
         Generate the plot using the current XSPEC model parameters.
         """
-        if not hasattr(self, 'model'):
-            self.load_model()
-
-        # Ensure the model is set for the plot
-        Plot.device = '/null'  # Suppress plot output
-        Plot.xAxis = 'keV'
-        Plot.xLog = True
-        Plot.yLog = True
-
-        if AllData.nSpectra > 0:
-            Plot("ldata")
+        if self.plot_components_selected:
+            self.plot_different_components()
         else:
-            Plot(self.what_to_plot)  # Load the model
+            if not hasattr(self, 'model'):
+                self.load_model()
 
-        # Extract data from XSPEC plot
-        x = Plot.x()
-        y = Plot.model()
+            # Ensure the model is set for the plot
+            Plot.device = '/null'  # Suppress plot output
+            Plot.xAxis = 'keV'
+            Plot.xLog = True
+            Plot.yLog = True
 
-        # Store current axes limits
-        x_limits = self.ax.get_xlim()
-        y_limits = self.ax.get_ylim()
+            if AllData.nSpectra > 0:
+                Plot("ldata")
+            else:
+                Plot(self.what_to_plot)  # Load the model
 
-        # Clear previous plot
-        self.ax.clear()
+            # Extract data from XSPEC plot
+            x = Plot.x()
+            y = Plot.model()
 
-        # Generate the plot
-        self.ax.plot(x, y, label=self.what_to_plot)
-        self.ax.set_xlabel("Energy (keV)")
-        if self.what_to_plot == "model":
-            self.ax.set_ylabel(r"$\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1}$")
-        elif self.what_to_plot == "emodel":
-            self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
-        elif self.what_to_plot == "eemodel":
-            self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
-        self.ax.set_title(f"Plot of {self.model_name} {self.what_to_plot}")
-        self.ax.set_xscale('log')
-        self.ax.set_yscale('log')
+            # Store current axes limits
+            x_limits = self.ax.get_xlim()
+            y_limits = self.ax.get_ylim()
 
-        if AllData.nSpectra >= 1:
-            for i in range(AllData.nSpectra):
-                self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-                self.ax.plot(self.xs[i], self.mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
-                if self.backs[i] is not None and self.include_background:
-                    self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
+            # Clear previous plot
+            self.ax.clear()
 
-        self.ax.legend()
+            # Generate the plot
+            self.ax.plot(x, y, label=self.what_to_plot)
+            self.ax.set_xlabel("Energy (keV)")
+            if self.what_to_plot == "model":
+                self.ax.set_ylabel(r"$\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1}$")
+            elif self.what_to_plot == "emodel":
+                self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
+            elif self.what_to_plot == "eemodel":
+                self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
+            self.ax.set_title(f"Plot of {self.model_name} {self.what_to_plot}")
+            self.ax.set_xscale('log')
+            self.ax.set_yscale('log')
 
-        # Freeze axes if option is selected
-        if (hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected):
-            self.ax.set_xlim(x_limits)
-            self.ax.set_ylim(y_limits)
-        else:
-            self.ax.relim()
-            self.ax.autoscale_view()
+            if AllData.nSpectra >= 1:
+                for i in range(AllData.nSpectra):
+                    self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                    self.ax.plot(self.xs[i], self.mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
+                    if self.backs[i] is not None and self.include_background:
+                        self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
 
-        # Refresh canvas
-        self.canvas.draw()
+            self.ax.legend()
+
+            # Freeze axes if option is selected
+            if (hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected):
+                self.ax.set_xlim(x_limits)
+                self.ax.set_ylim(y_limits)
+            else:
+                self.ax.relim()
+                self.ax.autoscale_view()
+
+            # Refresh canvas
+            self.canvas.draw()
 
     def save_plot(self):
         """
@@ -442,17 +448,11 @@ class MainWindow(QMainWindow):
             self.freeze_axes_selected = not getattr(self, 'freeze_axes_selected', False)
         elif option_name == 'Use Textboxes for Parameters':
             self.use_textboxes_selected = not getattr(self, 'use_textboxes_selected', False)
+        elif option_name == 'Plot Different Components':
+            self.plot_components_selected = not getattr(self, 'plot_components_selected', False)
+        elif option_name == 'Include Background':
+            self.include_background = not getattr(self, 'include_background', False)
         self.load_model()
-
-    def toggle_background_visibility(self, checked):
-        """
-        Toggle the visibility of the background in the plot.
-
-        Parameters:
-        - checked (bool): Whether the background should be visible.
-        """
-        self.include_background = checked
-        self.update_plot()
 
     def save_parameters_as_xcm(self):
         """
@@ -468,7 +468,7 @@ class MainWindow(QMainWindow):
         """
         Open an XCM file and load the model parameters into the application.
         """
-        self.loaded = True
+        self.is_model_loaded = True
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "Open XCM File", "", "XCM Files (*.xcm);;All Files (*)", options=options)
         if file_path:
@@ -496,7 +496,7 @@ class MainWindow(QMainWindow):
             self.model = AllModels(1)  # Set the model from loaded data
             self.model_name = AllModels(1).name  # Get the model name
             print(f"Loaded model: {self.model_name}")  # Print the loaded model name
-            self.loaded = True
+            self.is_model_loaded = True
             self.load_model()  # Update sliders and labels with the loaded model
         else:
             print("No model loaded from the XCM file.")  # Print warning if no model is loaded
@@ -654,7 +654,7 @@ class MainWindow(QMainWindow):
                         getattr(self.model, other_component).norm = 0
 
                 # Plot the data
-                Plot('model')
+                Plot(self.what_to_plot)
                 x = Plot.x()
                 y = Plot.model()
 
@@ -802,7 +802,7 @@ class MainWindow(QMainWindow):
                 param_obj.values = [param_value] + param_obj.values[1:]
 
                 # Recalculate the model using self.model
-                Plot('model')
+                Plot(self.what_to_plot)
                 x = Plot.x()
                 y = Plot.model()
 
