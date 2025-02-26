@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
     QComboBox,  # Creates dropdown
     QScrollArea,  # Creates scroll area
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication, QProcess, QTimer
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvasQTAgg as FigureCanvas,
 )  # Allows embedding Matplotlib plots in PyQt
@@ -61,10 +61,12 @@ class MainWindow(QMainWindow):
         save_xcm_action = QAction('Save Parameters as XCM', self)  # New action
         load_data_xcm_action = QAction('Load Data as XCM', self)  # New action
         exit_action = QAction('Exit', self)
+        restart_action = QAction('Restart', self)  # New action
         file_menu.addAction(load_model_xcm_action)  # Updated action
         file_menu.addAction(save_plot_action)
         file_menu.addAction(save_xcm_action)  # Add new action
         file_menu.addAction(load_data_xcm_action)  # Add new action
+        file_menu.addAction(restart_action)  # Add new action
         file_menu.addAction(exit_action)
 
         # Add 'View' menu
@@ -92,6 +94,7 @@ class MainWindow(QMainWindow):
         save_xcm_action.triggered.connect(self.save_parameters_as_xcm)  # Connect new action
         load_data_xcm_action.triggered.connect(self.load_data_as_xcm)  # Connect new action
         exit_action.triggered.connect(self.close)
+        restart_action.triggered.connect(self.restart_application)  # Connect new action
         freeze_axes_action.triggered.connect(lambda: self.toggle_option('Freeze Axes'))
         use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Textboxes for Parameters'))
         include_background_action.triggered.connect(lambda: self.toggle_option('Include Background'))
@@ -829,6 +832,14 @@ class MainWindow(QMainWindow):
         button_box.rejected.connect(dialog.reject)
 
         dialog.exec_()
+
+    def restart_application(self):
+        """
+        Restart the application to its initial state.
+        """
+        self.close()
+        QCoreApplication.quit()
+        QProcess.startDetached(sys.executable, sys.argv)
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
