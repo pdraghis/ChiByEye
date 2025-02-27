@@ -78,6 +78,7 @@ class MainWindow(QMainWindow):
         plot_components_action = QAction('Plot Different Components', self, checkable=True)
         select_plot_action = QAction('Select What to Plot', self)
         plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
+        show_frozen_action = QAction('Show Frozen Parameters', self, checkable=True)  # New action
         view_menu.addAction(freeze_axes_action)
         view_menu.addAction(use_textboxes_action)
         view_menu.addAction(include_background_action)
@@ -85,8 +86,10 @@ class MainWindow(QMainWindow):
         view_menu.addAction(plot_components_action)
         view_menu.addAction(select_plot_action)
         view_menu.addAction(plot_n_times_action)  # Add new action
+        view_menu.addAction(show_frozen_action)  # Add new action
         set_axes_limits_action.triggered.connect(self.set_axes_limits)
         plot_n_times_action.triggered.connect(self.plot_same_curve_n_times)  # Connect new action
+        show_frozen_action.triggered.connect(lambda: self.toggle_option('Show Frozen Parameters'))  # Connect new action
 
         # Connect actions to methods (placeholders)
         load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  # Updated connection
@@ -158,6 +161,8 @@ class MainWindow(QMainWindow):
         self.use_textboxes_selected = False
         self.plot_components_selected = False
         self.freeze_axes_selected = False
+        self.is_data_loaded = False
+        self.show_frozen_parameters = False
 
     def load_model(self):
         """
@@ -195,8 +200,8 @@ class MainWindow(QMainWindow):
                 labels_in_component = getattr(self.model, component).parameterNames
                 labels_in_comps.append(labels_in_component)
                 for par in labels_in_component:
-                    # Add parameter to list if it's not frozen and not linked
-                    if not getattr(getattr(self.model, component), par).frozen and getattr(getattr(self.model, component), par).link == '':
+                    # Add parameter to list if it's not linked
+                    if getattr(getattr(self.model, component), par).link == '':
                         indices.append(i)
                         if par == 'norm':
                             labels.append(par + '_' + component[0])
@@ -215,7 +220,7 @@ class MainWindow(QMainWindow):
             for i in range(len(labels_in_comps)):
                 for j in range(len(labels_in_comps[i])):
                     param = getattr(getattr(self.model, comps[i]), labels_in_comps[i][j])
-                    if not param.frozen and param.link == '':
+                    if getattr(self, 'show_frozen_parameters', True) or (not param.frozen and param.link == ''):
                         self.model_params.append(param)
 
             counter = 0
@@ -228,46 +233,47 @@ class MainWindow(QMainWindow):
                     param = getattr(getattr(self.model, comps[i]), labels_in_comps[i][j])
                     label = QLabel(f"{param.name}: {param.values[0]:.3f}")  # Display parameter value
 
-                    if hasattr(self, 'use_textboxes_selected') and self.use_textboxes_selected:
-                        # Use textboxes for parameter input
-                        if not self.param_textboxes:
-                            for slider in self.param_sliders:
-                                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                                left_panel.removeWidget(slider)
-                                slider.deleteLater()
-                            self.param_sliders.clear()
-                            for label in self.param_labels:
-                                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                                left_panel.removeWidget(label)
-                                label.deleteLater()
-                            self.param_labels.clear()
-                            
-                        label = QLabel(f"{param.name}: {param.values[0]:.3f}")
-                        textbox = QLineEdit(str(param.values[0]))
-                        textbox.editingFinished.connect(lambda tb=textbox, p=param: setattr(p, 'values', [float(tb.text())]))
-                        left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                        left_panel.insertWidget(counter * 2, label)
-                        left_panel.insertWidget(counter * 2 + 1, textbox)
-                        self.param_textboxes.append(textbox)
-                        self.param_labels.append(label)
-                    else:
-                        # Use sliders for parameter input
-                        for textbox in self.param_textboxes:
+                    if param in self.model_params:
+                        if hasattr(self, 'use_textboxes_selected') and self.use_textboxes_selected:
+                            # Use textboxes for parameter input
+                            if not self.param_textboxes:
+                                for slider in self.param_sliders:
+                                    left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                                    left_panel.removeWidget(slider)
+                                    slider.deleteLater()
+                                self.param_sliders.clear()
+                                for label in self.param_labels:
+                                    left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                                    left_panel.removeWidget(label)
+                                    label.deleteLater()
+                                self.param_labels.clear()
+                                
+                            label = QLabel(f"{param.name}: {param.values[0]:.3f}")
+                            textbox = QLineEdit(str(param.values[0]))
+                            textbox.editingFinished.connect(lambda tb=textbox, p=param: setattr(p, 'values', [float(tb.text())]))
                             left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                            left_panel.removeWidget(textbox)
-                            textbox.deleteLater()
-                        self.param_textboxes.clear()
-                        slider, scale_factor, precision_factor = self.create_slider(param)
-                        slider.valueChanged.connect(lambda value, p=param, l=label, sf=scale_factor, pf=precision_factor: self.update_param_label(value, p, l, sf, pf))
-                        left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                        left_panel.insertWidget(counter * 2, label)
-                        left_panel.insertWidget(counter * 2 + 1, slider)
-                        self.param_sliders.append(slider)
-                        self.scale_factors.append(scale_factor)
-                        self.precision_factors.append(precision_factor)
-                        self.param_labels.append(label)
+                            left_panel.insertWidget(counter * 2, label)
+                            left_panel.insertWidget(counter * 2 + 1, textbox)
+                            self.param_textboxes.append(textbox)
+                            self.param_labels.append(label)
+                        else:
+                            # Use sliders for parameter input
+                            for textbox in self.param_textboxes:
+                                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                                left_panel.removeWidget(textbox)
+                                textbox.deleteLater()
+                            self.param_textboxes.clear()
+                            slider, scale_factor, precision_factor = self.create_slider(param)
+                            slider.valueChanged.connect(lambda value, p=param, l=label, sf=scale_factor, pf=precision_factor: self.update_param_label(value, p, l, sf, pf))
+                            left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                            left_panel.insertWidget(counter * 2, label)
+                            left_panel.insertWidget(counter * 2 + 1, slider)
+                            self.param_sliders.append(slider)
+                            self.scale_factors.append(scale_factor)
+                            self.precision_factors.append(precision_factor)
+                            self.param_labels.append(label)
 
-                    counter += 1
+                        counter += 1
                 # Insert a horizontal line after each component's parameters
                 line = QFrame()
                 line.setFrameShape(QFrame.HLine)
@@ -455,6 +461,8 @@ class MainWindow(QMainWindow):
             self.plot_components_selected = not getattr(self, 'plot_components_selected', False)
         elif option_name == 'Include Background':
             self.include_background = not getattr(self, 'include_background', False)
+        elif option_name == 'Show Frozen Parameters':
+            self.show_frozen_parameters = not getattr(self, 'show_frozen_parameters', False)
         self.load_model()
 
     def save_parameters_as_xcm(self):
@@ -489,6 +497,8 @@ class MainWindow(QMainWindow):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open XCM File", "", "XCM Files (*.xcm)")
         if not file_path:
             return  # Exit if no file is selected
+
+        self.is_data_loaded = True
 
         # Restore XSPEC settings from the selected XCM file
         Xset.restore(file_path)  # Load the XCM file
