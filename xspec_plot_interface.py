@@ -26,7 +26,9 @@ from matplotlib.backends.backend_qt5agg import (
 from matplotlib.figure import Figure  # Used to create the Matplotlib figure
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 from xspec import *
+import os
 
 # Define a list of colors for plotting spectra
 SPECTRUM_COLORS = ['black', 'red', 'lime', 'blue', 'cyan', 'magenta', 'yellow', 'orange']
@@ -79,6 +81,7 @@ class MainWindow(QMainWindow):
         select_plot_action = QAction('Select What to Plot', self)
         plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
         show_frozen_action = QAction('Show Frozen Parameters', self, checkable=True)  # New action
+        plot_data_action = QAction('Plot Data', self)  # New action
         view_menu.addAction(freeze_axes_action)
         view_menu.addAction(use_textboxes_action)
         view_menu.addAction(include_background_action)
@@ -87,9 +90,11 @@ class MainWindow(QMainWindow):
         view_menu.addAction(select_plot_action)
         view_menu.addAction(plot_n_times_action)  # Add new action
         view_menu.addAction(show_frozen_action)  # Add new action
+        view_menu.addAction(plot_data_action)  # Add new action
         set_axes_limits_action.triggered.connect(self.set_axes_limits)
         plot_n_times_action.triggered.connect(self.plot_same_curve_n_times)  # Connect new action
         show_frozen_action.triggered.connect(lambda: self.toggle_option('Show Frozen Parameters'))  # Connect new action
+        plot_data_action.triggered.connect(self.open_plot_data_dialog)  # Connect new action
 
         # Connect actions to methods (placeholders)
         load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  # Updated connection
@@ -486,6 +491,12 @@ class MainWindow(QMainWindow):
             Xset.restore(file_path)
             self.model = AllModels(1)
 
+            path_head, path_tail = os.path.split(file_path)
+            current_dir = os.getcwd()
+            os.chdir(path_head)
+            Xset.restore(path_tail)
+            os.chdir(current_dir)
+
             QMessageBox.information(self, "Open XCM File", f"Model parameters loaded from {file_path}")
             self.load_model()  # Update the UI with the loaded parameters
 
@@ -499,6 +510,13 @@ class MainWindow(QMainWindow):
             return  # Exit if no file is selected
 
         self.is_data_loaded = True
+        self.what_to_plot = 'ldata'  # Set plot type to 'ldata'
+
+        path_head, path_tail = os.path.split(file_path)
+        current_dir = os.getcwd()
+        os.chdir(path_head)
+        Xset.restore(path_tail)
+        os.chdir(current_dir)
 
         # Restore XSPEC settings from the selected XCM file
         Xset.restore(file_path)  # Load the XCM file
@@ -860,6 +878,111 @@ class MainWindow(QMainWindow):
         self.close()
         QCoreApplication.quit()
         QProcess.startDetached(sys.executable, sys.argv)
+
+    def open_plot_data_dialog(self):
+        """
+        Open a dialog to select data plotting options.
+        """
+        if not self.is_data_loaded:
+            QMessageBox.warning(self, 'No Data Loaded', 'Please load data first.')
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Select Data Plotting Option')
+        layout = QVBoxLayout()
+
+        # Create a dropdown for data plotting options
+        dropdown = QComboBox()
+        dropdown.addItems(['data', 'data+ratio', 'eufspec+delchi'])
+        dropdown.setCurrentText('data')
+
+        # Connect dropdown selection to update the attribute
+        dropdown.currentTextChanged.connect(lambda text: setattr(self, 'data_plot_option', text))
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(lambda: [dialog.accept(), self.plot_data()])
+        buttons.rejected.connect(dialog.reject)
+
+        # Add widgets to layout
+        layout.addWidget(dropdown)
+        layout.addWidget(buttons)
+        dialog.setLayout(layout)
+
+        dialog.exec_()
+
+    def plot_data(self):
+        """
+        Plot the data based on the selected option.
+        """
+        if not hasattr(self, 'data_plot_option'):
+            self.data_plot_option = 'data'
+
+        # Clear previous plot
+        self.ax.clear()
+
+        if self.data_plot_option == 'data':
+            Plot('data')
+            x = Plot.x()
+            y = Plot.y()
+            self.ax.plot(x, y, label=self.data_plot_option)
+            self.ax.set_xlabel("Energy (keV)")
+            self.ax.set_ylabel("Counts")
+            self.ax.set_title(f"Plot of {self.data_plot_option}")
+            self.ax.set_xscale('log')
+            self.ax.set_yscale('log')
+            self.ax.legend()
+            self.canvas.draw()
+
+        elif self.data_plot_option == 'data+ratio':
+            Plot('data')
+            x = Plot.x()
+            y = Plot.y()
+            ratio = Plot.ratio()
+
+            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+            self.canvas.figure = fig
+            self.ax = ax1
+
+            ax1.plot(x, y, label='data')
+            ax1.set_ylabel("Counts")
+            ax1.set_title("Data and Ratio")
+            ax1.set_xscale('log')
+            ax1.set_yscale('log')
+            ax1.legend()
+
+            ax2.plot(x, ratio, label='ratio')
+            ax2.set_xlabel("Energy (keV)")
+            ax2.set_ylabel("Ratio")
+            ax2.set_xscale('log')
+            ax2.legend()
+
+            self.canvas.draw()
+
+        elif self.data_plot_option == 'eufspec+delchi':
+            Plot('eufspec')
+            x = Plot.x()
+            y = Plot.y()
+            delchi = Plot.delchi()
+
+            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+            self.canvas.figure = fig
+            self.ax = ax1
+
+            ax1.plot(x, y, label='eufspec')
+            ax1.set_ylabel("Counts")
+            ax1.set_title("Eufspec and Delchi")
+            ax1.set_xscale('log')
+            ax1.set_yscale('log')
+            ax1.legend()
+
+            ax2.plot(x, delchi, label='delchi')
+            ax2.set_xlabel("Energy (keV)")
+            ax2.set_ylabel("Delchi")
+            ax2.set_xscale('log')
+            ax2.legend()
+
+            self.canvas.draw()
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
