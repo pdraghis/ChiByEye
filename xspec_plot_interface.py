@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,  # Creates message box
     QAction,  # Creates action for menu items
     QFrame,  # Creates frame
-    QDialog,  # Creates dialog\
+    QDialog,  # Creates dialog
     QDialogButtonBox,  # Creates button box for dialog
     QComboBox,  # Creates dropdown
     QScrollArea,  # Creates scroll area
@@ -491,12 +491,6 @@ class MainWindow(QMainWindow):
             Xset.restore(file_path)
             self.model = AllModels(1)
 
-            path_head, path_tail = os.path.split(file_path)
-            current_dir = os.getcwd()
-            os.chdir(path_head)
-            Xset.restore(path_tail)
-            os.chdir(current_dir)
-
             QMessageBox.information(self, "Open XCM File", f"Model parameters loaded from {file_path}")
             self.load_model()  # Update the UI with the loaded parameters
 
@@ -619,13 +613,18 @@ class MainWindow(QMainWindow):
 
         # Add OK and Cancel buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttons.accepted.connect(lambda: self.apply_axes_limits(x_min_textbox.text(), x_max_textbox.text(), y_min_textbox.text(), y_max_textbox.text(), dialog))
+        buttons.accepted.connect(lambda: self.apply_axes_limits(
+            x_min_textbox.text() if x_min_textbox.text() else str(self.ax.get_xlim()[0]),
+            x_max_textbox.text() if x_max_textbox.text() else str(self.ax.get_xlim()[1]),
+            y_min_textbox.text() if y_min_textbox.text() else str(self.ax.get_ylim()[0]),
+            y_max_textbox.text() if y_max_textbox.text() else str(self.ax.get_ylim()[1]),
+            dialog
+        ))
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
         dialog.exec_()
-
 
     def apply_axes_limits(self, x_min, x_max, y_min, y_max, dialog):
         """
@@ -653,7 +652,6 @@ class MainWindow(QMainWindow):
             AllModels.setEnergies(f'{x_min} {x_max} 1000 log')
         except ValueError:
             QMessageBox.warning(self, 'Invalid Input', 'Please enter valid numbers for the axes limits.')
-
 
     def plot_different_components(self):
         """
