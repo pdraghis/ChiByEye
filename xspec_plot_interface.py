@@ -447,7 +447,7 @@ class MainWindow(QMainWindow):
             if AllData.nSpectra >= 1:
                 for i in range(AllData.nSpectra):
                     self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-                    self.ax.plot(self.xs[i], self.mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
+                    # self.ax.plot(self.xs[i], self.mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
                     if self.backs[i] is not None and self.include_background:
                         self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
 
