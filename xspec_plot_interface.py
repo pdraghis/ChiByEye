@@ -772,6 +772,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(spacing_label)
         layout.addWidget(spacing_combo)
 
+        # Dropdown for selecting color map
+        cmap_label = QLabel("Select color map:")
+        cmap_combo = QComboBox()
+        cmap_combo.addItems(["plasma", "rainbow", "viridis", "inferno", "magma", "cividis"])
+        layout.addWidget(cmap_label)
+        layout.addWidget(cmap_combo)
+
         # Input for parameter min
         param_min_label = QLabel("Parameter min:")
         param_min_input = QLineEdit()
@@ -802,6 +809,7 @@ class MainWindow(QMainWindow):
             param_max = float(param_max_input.text())
             n = int(n_input.text())
             spacing = spacing_combo.currentText()
+            cmap_name = cmap_combo.currentText()
 
             if not hasattr(self, 'model'):
                 QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
@@ -818,7 +826,7 @@ class MainWindow(QMainWindow):
 
             # Generate colors
             values = np.linspace(param_min, param_max, n)
-            cmap = cm.get_cmap('plasma')
+            cmap = cm.get_cmap(cmap_name)
             colors = cmap(norm(values))
 
             # Plot the same curve N times with specified spacing and colors
