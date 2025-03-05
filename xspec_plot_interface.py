@@ -36,6 +36,21 @@ SPECTRUM_COLORS = ['black', 'red', 'lime', 'blue', 'cyan', 'magenta', 'yellow', 
 # Load the relxill models
 AllModels.lmod('relxill')
 
+# Global constants
+WINDOW_TITLE = "XSPEC Model"
+WINDOW_GEOMETRY = (100, 100, 1000, 600)
+PLOT_X_AXIS = 'keV'
+PLOT_X_LOG = True
+PLOT_Y_LOG = True
+PLOT_Y_MIN_FACTOR = 10**(-15)
+PLOT_Y_MAX_FACTOR = 1.05
+SLIDER_PRECISION_FACTOR = 1000
+DEFAULT_MODEL_NAME = "e.g., powerlaw"
+DEFAULT_PLOT_TYPE = 'model'
+DEFAULT_DATA_PLOT_OPTION = 'data'
+DEFAULT_COLOR_MAP = "plasma"
+DEFAULT_SPACING = "linear"
+DEFAULT_CURVE_COUNT = 10
 
 class MainWindow(QMainWindow):
     """
@@ -49,8 +64,8 @@ class MainWindow(QMainWindow):
         Initialize the main window, set up the layout, and connect signals.
         """
         super().__init__()
-        self.setWindowTitle("XSPEC Model")
-        self.setGeometry(100, 100, 1000, 600)  # Set window dimensions
+        self.setWindowTitle(WINDOW_TITLE)
+        self.setGeometry(*WINDOW_GEOMETRY)  # Set window dimensions
         self.model_name = None
 
         # Create a menubar
@@ -123,7 +138,7 @@ class MainWindow(QMainWindow):
         # Model selection components
         self.model_label = QLabel("Enter Model:")
         self.model_textbox = QLineEdit()
-        self.model_textbox.setPlaceholderText("e.g., powerlaw")
+        self.model_textbox.setPlaceholderText(DEFAULT_MODEL_NAME)
         self.model_textbox.returnPressed.connect(self.load_model)
         left_panel.addWidget(self.model_label)
         left_panel.addWidget(self.model_textbox)
@@ -168,7 +183,7 @@ class MainWindow(QMainWindow):
         # Initialize background visibility state
         self.include_background = False
         self.is_model_loaded = False
-        self.what_to_plot = 'model'
+        self.what_to_plot = DEFAULT_PLOT_TYPE
         self.use_textboxes_selected = False
         self.plot_components_selected = False
         self.freeze_axes_selected = False
@@ -357,7 +372,7 @@ class MainWindow(QMainWindow):
         scale_factor = 10 ** int(np.floor(np.log10(max_value))) if max_value > 0 else 1
 
         # Increase precision by scaling to a smaller range
-        precision_factor = 1000  # Adjust this to increase slider precision
+        precision_factor = SLIDER_PRECISION_FACTOR  # Adjust this to increase slider precision
         min_value = int(param.values[2] / scale_factor * precision_factor)
         max_value = int(param.values[5] / scale_factor * precision_factor)
         initial_value = int(param.values[0] / scale_factor * precision_factor)
@@ -396,9 +411,9 @@ class MainWindow(QMainWindow):
 
             # Ensure the model is set for the plot
             Plot.device = '/null'  # Suppress plot output
-            Plot.xAxis = 'keV'
-            Plot.xLog = True
-            Plot.yLog = True
+            Plot.xAxis = PLOT_X_AXIS
+            Plot.xLog = PLOT_X_LOG
+            Plot.yLog = PLOT_Y_LOG
 
             if AllData.nSpectra > 0:
                 Plot("ldata")
@@ -1004,7 +1019,7 @@ class MainWindow(QMainWindow):
         """
         y_data = [line.get_ydata() for line in self.ax.get_lines()]
         max_y = max([max(y) for y in y_data if len(y) > 0])
-        self.ax.set_ylim(10**(-15) * max_y, 1.05 * max_y)
+        self.ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
         self.canvas.draw()
 
 
