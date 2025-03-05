@@ -133,6 +133,12 @@ class MainWindow(QMainWindow):
         self.plot_button.clicked.connect(self.update_plot)
         left_panel.addWidget(self.plot_button)
 
+        # Button to rescale plot
+        self.rescale_button = QPushButton("Rescale Plot")
+        self.rescale_button.clicked.connect(self.rescale_plot)
+        self.rescale_button.hide()  # Initially hide the button
+        left_panel.addWidget(self.rescale_button)
+
         # Initialize lists for sliders and labels
         self.param_sliders = []
         self.param_labels = []
@@ -289,6 +295,8 @@ class MainWindow(QMainWindow):
             # Hide the label and textbox after loading the model
             self.model_label.hide()
             self.model_textbox.hide()
+            # Show the rescale button
+            self.rescale_button.show()
             # Update the plot with the new model
             self.update_plot()
 
@@ -989,6 +997,15 @@ class MainWindow(QMainWindow):
             ax2.legend()
 
             self.canvas.draw()
+
+    def rescale_plot(self):
+        """
+        Rescale the y-axis limits of the plot.
+        """
+        y_data = [line.get_ydata() for line in self.ax.get_lines()]
+        max_y = max([max(y) for y in y_data if len(y) > 0])
+        self.ax.set_ylim(10**(-15) * max_y, 1.05 * max_y)
+        self.canvas.draw()
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
