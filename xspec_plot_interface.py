@@ -684,6 +684,10 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
             return
 
+        # Store current axes limits
+        x_limits = self.ax.get_xlim()
+        y_limits = self.ax.get_ylim()
+
         # Clear previous plot
         self.ax.clear()
 
@@ -693,13 +697,12 @@ class MainWindow(QMainWindow):
         for component in self.comps:
             # Check if the component has a 'norm' attribute
             if hasattr(getattr(self.model, component), 'norm'):
-             # Store original normalization value
+                # Store original normalization value
                 original_params[component] = getattr(self.model, component).norm.values[0]
 
         for component in self.comps:
             # Check if the component has a 'norm' attribute
             if hasattr(getattr(self.model, component), 'norm'):
-
                 # Set all other components' normalization to 0
                 for other_component in self.comps:
                     if other_component != component and hasattr(getattr(self.model, other_component), 'norm'):
@@ -734,6 +737,14 @@ class MainWindow(QMainWindow):
         self.ax.set_xscale('log')
         self.ax.set_yscale('log')
         self.ax.legend()
+
+        # Restore axes limits if option is selected
+        if hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected:
+            self.ax.set_xlim(x_limits)
+            self.ax.set_ylim(y_limits)
+        else:
+            self.ax.relim()
+            self.ax.autoscale_view()
 
         # Refresh canvas
         self.canvas.draw()
