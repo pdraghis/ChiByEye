@@ -976,15 +976,19 @@ class MainWindow(QMainWindow):
 
         elif self.data_plot_option == 'data+ratio':
             Plot('data')
-            x = Plot.x()
-            y = Plot.y()
-            ratio = Plot.ratio()
+            x = np.array(Plot.x())
+            y = np.array(Plot.y())
+            y_model = np.array(Plot.model())
+            y_error = np.array(Plot.yErr())
+
+            ratio = y / y_model
 
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             self.canvas.figure = fig
-            self.ax = ax1
+            self.ax = [ax1, ax2]
 
-            ax1.plot(x, y, label='data')
+            ax1.errorbar(x, y, yerr=y_error, fmt='.', label='data')
+            ax1.plot(x, y_model, label='model')
             ax1.set_ylabel("Counts")
             ax1.set_title("Data and Ratio")
             ax1.set_xscale('log')
@@ -1001,15 +1005,19 @@ class MainWindow(QMainWindow):
 
         elif self.data_plot_option == 'eufspec+delchi':
             Plot('eufspec')
-            x = Plot.x()
-            y = Plot.y()
-            delchi = Plot.delchi()
+            x = np.array(Plot.x())
+            y = np.array(Plot.y())
+            y_model = np.array(Plot.model())
+            y_error = np.array(Plot.yErr())
+
+            delchi = (y - y_model) / y_error
 
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             self.canvas.figure = fig
-            self.ax = ax1
+            self.ax = [ax1, ax2]
 
-            ax1.plot(x, y, label='eufspec')
+            ax1.errorbar(x, y, yerr=y_error, fmt='.', label='eufspec')
+            ax1.plot(x, y_model, label='model')
             ax1.set_ylabel("Counts")
             ax1.set_title("Eufspec and Delchi")
             ax1.set_xscale('log')
