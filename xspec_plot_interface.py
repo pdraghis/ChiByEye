@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,  # Creates button box for dialog
     QComboBox,  # Creates dropdown
     QScrollArea,  # Creates scroll area
+    QCheckBox,  # Creates check box
 )
 from PyQt5.QtCore import Qt, QCoreApplication, QProcess, QTimer
 from matplotlib.backends.backend_qt5agg import (
@@ -43,7 +44,7 @@ PLOT_X_AXIS = 'keV'
 PLOT_X_LOG = True
 PLOT_Y_LOG = True
 PLOT_Y_MIN_FACTOR = 10**(-15)
-PLOT_Y_MAX_FACTOR = 1.05
+PLOT_Y_MAX_FACTOR = 1.15
 SLIDER_PRECISION_FACTOR = 1000
 DEFAULT_MODEL_NAME = "e.g., powerlaw"
 DEFAULT_PLOT_TYPE = 'model'
@@ -148,11 +149,11 @@ class MainWindow(QMainWindow):
         self.plot_button.clicked.connect(self.update_plot)
         left_panel.addWidget(self.plot_button)
 
-        # Button to rescale plot
-        self.rescale_button = QPushButton("Rescale Plot")
-        self.rescale_button.clicked.connect(self.rescale_plot)
-        self.rescale_button.hide()  # Initially hide the button
-        left_panel.addWidget(self.rescale_button)
+        # Checkbox to rescale plot
+        self.rescale_checkbox = QCheckBox("Rescale Plot")
+        self.rescale_checkbox.stateChanged.connect(self.rescale_plot)
+        self.rescale_checkbox.hide()  # Initially hide the checkbox
+        left_panel.addWidget(self.rescale_checkbox)
 
         # Initialize lists for sliders and labels
         self.param_sliders = []
@@ -310,8 +311,8 @@ class MainWindow(QMainWindow):
             # Hide the label and textbox after loading the model
             self.model_label.hide()
             self.model_textbox.hide()
-            # Show the rescale button
-            self.rescale_button.show()
+            # Show the rescale checkbox
+            self.rescale_checkbox.show()
             # Update the plot with the new model
             self.update_plot()
 
@@ -403,6 +404,10 @@ class MainWindow(QMainWindow):
         """
         Generate the plot using the current XSPEC model parameters.
         """
+        if isinstance(self.ax, list):
+            self.plot_data()
+            return
+
         if self.plot_components_selected:
             self.plot_different_components()
         else:
@@ -447,7 +452,6 @@ class MainWindow(QMainWindow):
             if AllData.nSpectra >= 1:
                 for i in range(AllData.nSpectra):
                     self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-                    # self.ax.plot(self.xs[i], self.mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
                     if self.backs[i] is not None and self.include_background:
                         self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
 
@@ -460,6 +464,10 @@ class MainWindow(QMainWindow):
             else:
                 self.ax.relim()
                 self.ax.autoscale_view()
+
+            # Rescale plot if the checkbox is checked
+            if self.rescale_checkbox.isChecked():
+                self.rescale_plot()
 
             # Refresh canvas
             self.canvas.draw()
@@ -511,7 +519,11 @@ class MainWindow(QMainWindow):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "Open XCM File", "", "XCM Files (*.xcm);;All Files (*)", options=options)
         if file_path:
-            Xset.restore(file_path)
+            path_head, path_tail = os.path.split(file_path)
+            current_dir = os.getcwd()
+            os.chdir(path_head)
+            Xset.restore(path_tail)
+            os.chdir(current_dir)
             self.model = AllModels(1)
 
             QMessageBox.information(self, "Open XCM File", f"Model parameters loaded from {file_path}")
@@ -534,10 +546,6 @@ class MainWindow(QMainWindow):
         os.chdir(path_head)
         Xset.restore(path_tail)
         os.chdir(current_dir)
-
-        # Restore XSPEC settings from the selected XCM file
-        Xset.restore(file_path)  # Load the XCM file
-        # Fit.perform()  # Perform the fit
 
         # Check if models are loaded and update instance attributes
         if AllModels(1):
@@ -975,13 +983,15 @@ class MainWindow(QMainWindow):
             self.canvas.draw()
 
         elif self.data_plot_option == 'data+ratio':
-            Plot('data')
+            Plot('ldata')
             x = np.array(Plot.x())
             y = np.array(Plot.y())
             y_model = np.array(Plot.model())
             y_error = np.array(Plot.yErr())
 
-            ratio = y / y_model
+            Plot('ratio')
+            ratio = np.array(Plot.y())
+            ratio_error = np.array(Plot.yErr())
 
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             self.canvas.figure = fig
@@ -995,7 +1005,7 @@ class MainWindow(QMainWindow):
             ax1.set_yscale('log')
             ax1.legend()
 
-            ax2.plot(x, ratio, label='ratio')
+            ax2.errorbar(x, ratio, ratio_error, fmt='.', label='ratio')
             ax2.set_xlabel("Energy (keV)")
             ax2.set_ylabel("Ratio")
             ax2.set_xscale('log')
@@ -1010,7 +1020,9 @@ class MainWindow(QMainWindow):
             y_model = np.array(Plot.model())
             y_error = np.array(Plot.yErr())
 
-            delchi = (y - y_model) / y_error
+            Plot('delchi')
+            delchi = np.array(Plot.y())
+            delchi_error = np.array(Plot.yErr())
 
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             self.canvas.figure = fig
@@ -1024,7 +1036,7 @@ class MainWindow(QMainWindow):
             ax1.set_yscale('log')
             ax1.legend()
 
-            ax2.plot(x, delchi, label='delchi')
+            ax2.errorbar(x, delchi, yerr=delchi_error, fmt='.', label='delchi')
             ax2.set_xlabel("Energy (keV)")
             ax2.set_ylabel("Delchi")
             ax2.set_xscale('log')
@@ -1034,11 +1046,17 @@ class MainWindow(QMainWindow):
 
     def rescale_plot(self):
         """
-        Rescale the y-axis limits of the plot.
+        Rescale the y-axis limits of the plot based on the checkbox state.
         """
-        y_data = [line.get_ydata() for line in self.ax.get_lines()]
-        max_y = max([max(y) for y in y_data if len(y) > 0])
-        self.ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
+        if isinstance(self.ax, list):
+            for ax in self.ax:
+                y_data = [line.get_ydata() for line in ax.get_lines()]
+                max_y = max([max(y) for y in y_data if len(y) > 0])
+                ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
+        else:
+            y_data = [line.get_ydata() for line in self.ax.get_lines()]
+            max_y = max([max(y) for y in y_data if len(y) > 0])
+            self.ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
         self.canvas.draw()
 
 
