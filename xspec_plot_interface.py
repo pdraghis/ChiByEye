@@ -78,12 +78,14 @@ class MainWindow(QMainWindow):
         save_plot_action = QAction('Save Plot', self)
         save_xcm_action = QAction('Save Parameters as XCM', self)  # New action
         load_data_xcm_action = QAction('Load Data as XCM', self)  # New action
+        load_plot_style_action = QAction('Load Plot Style File', self)  # New action
         exit_action = QAction('Exit', self)
         restart_action = QAction('Restart', self)  # New action
         file_menu.addAction(load_model_xcm_action)  # Updated action
         file_menu.addAction(save_plot_action)
         file_menu.addAction(save_xcm_action)  # Add new action
         file_menu.addAction(load_data_xcm_action)  # Add new action
+        file_menu.addAction(load_plot_style_action)  # Add new action
         file_menu.addAction(restart_action)  # Add new action
         file_menu.addAction(exit_action)
 
@@ -117,8 +119,10 @@ class MainWindow(QMainWindow):
         save_plot_action.triggered.connect(self.save_plot)
         save_xcm_action.triggered.connect(self.save_parameters_as_xcm)  # Connect new action
         load_data_xcm_action.triggered.connect(self.load_data_as_xcm)  # Connect new action
+        load_plot_style_action.triggered.connect(self.load_plot_style)  # Connect new action
         exit_action.triggered.connect(self.close)
         restart_action.triggered.connect(self.restart_application)  # Connect new action
+
         freeze_axes_action.triggered.connect(lambda: self.toggle_option('Freeze Axes'))
         use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Textboxes for Parameters'))
         include_background_action.triggered.connect(lambda: self.toggle_option('Include Background'))
@@ -1059,6 +1063,20 @@ class MainWindow(QMainWindow):
             max_y = max([max(y) for y in y_data if len(y) > 0])
             self.ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
         self.canvas.draw()
+
+    def load_plot_style(self):
+        """
+        Load a matplotlib style file and apply the configurations to the plots.
+        """
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Load Plot Style File", "", "Style Files (*.mplstyle);;All Files (*)", options=options)
+        if file_path:
+            try:
+                plt.style.use(file_path)
+                QMessageBox.information(self, "Load Plot Style", f"Plot style loaded from {file_path}")
+                self.update_plot()  # Redraw the plot with the new style
+            except Exception as e:
+                QMessageBox.warning(self, "Load Plot Style", f"Failed to load plot style: {str(e)}")
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
