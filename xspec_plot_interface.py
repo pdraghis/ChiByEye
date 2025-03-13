@@ -681,6 +681,7 @@ class MainWindow(QMainWindow):
             dialog.accept()
             self.freeze_axes_selected = True
             AllModels.setEnergies(f'{x_min} {x_max} 1000 log')
+            self.update_plot()  # Redraw the plot with the new axes limits
         except ValueError:
             QMessageBox.warning(self, 'Invalid Input', 'Please enter valid numbers for the axes limits.')
 
