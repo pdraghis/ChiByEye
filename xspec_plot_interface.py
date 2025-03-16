@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
 
         # Button to generate plot
         self.plot_button = QPushButton("Generate Plot")
-        self.plot_button.clicked.connect(self.update_plot)
+        self.plot_button.clicked.connect(self.generate_plot)
         left_panel.addWidget(self.plot_button)
 
         # Checkbox to rescale plot
@@ -194,6 +194,7 @@ class MainWindow(QMainWindow):
         self.freeze_axes_selected = False
         self.is_data_loaded = False
         self.show_frozen_parameters = False
+        self.is_data_loaded = False
 
     def load_model(self):
         """
@@ -404,77 +405,78 @@ class MainWindow(QMainWindow):
         param.values = [scaled_value] + param.values[1:]
         label.setText(f"{param.name}: {scaled_value:.3e}")
 
+    def generate_plot(self):
+        if self.is_data_loaded:
+            self.plot_data()
+        elif self.plot_components_selected:
+            self.plot_different_components()
+        else:
+            # Ensure the model is set for the plot
+            if not hasattr(self, 'model'):
+                self.load_model()
+            self.update_plot()
+
+
     def update_plot(self):
         """
         Generate the plot using the current XSPEC model parameters.
         """
-        if isinstance(self.ax, list):
-            self.plot_data()
-            return
+        Plot.device = '/null'  # Suppress plot output
+        Plot.xAxis = PLOT_X_AXIS
+        Plot.xLog = PLOT_X_LOG
+        Plot.yLog = PLOT_Y_LOG
 
-        if self.plot_components_selected:
-            self.plot_different_components()
+        if AllData.nSpectra > 0:
+            Plot("ldata")
         else:
-            if not hasattr(self, 'model'):
-                self.load_model()
+            Plot(self.what_to_plot)  # Load the model
 
-            # Ensure the model is set for the plot
-            Plot.device = '/null'  # Suppress plot output
-            Plot.xAxis = PLOT_X_AXIS
-            Plot.xLog = PLOT_X_LOG
-            Plot.yLog = PLOT_Y_LOG
+        # Extract data from XSPEC plot
+        x = Plot.x()
+        y = Plot.model()
 
-            if AllData.nSpectra > 0:
-                Plot("ldata")
-            else:
-                Plot(self.what_to_plot)  # Load the model
+        # Store current axes limits
+        x_limits = self.ax.get_xlim()
+        y_limits = self.ax.get_ylim()
 
-            # Extract data from XSPEC plot
-            x = Plot.x()
-            y = Plot.model()
+        # Clear previous plot
+        self.ax.clear()
 
-            # Store current axes limits
-            x_limits = self.ax.get_xlim()
-            y_limits = self.ax.get_ylim()
+        # Generate the plot
+        self.ax.plot(x, y, label=self.what_to_plot)
+        self.ax.set_xlabel("Energy (keV)")
+        if self.what_to_plot == "model":
+            self.ax.set_ylabel(r"$\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1}$")
+        elif self.what_to_plot == "emodel":
+            self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
+        elif self.what_to_plot == "eemodel":
+            self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
+        self.ax.set_title(f"Plot of {self.model_name} {self.what_to_plot}")
+        self.ax.set_xscale('log')
+        self.ax.set_yscale('log')
 
-            # Clear previous plot
-            self.ax.clear()
+        if AllData.nSpectra >= 1:
+            for i in range(AllData.nSpectra):
+                self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                if self.backs[i] is not None and self.include_background:
+                    self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
 
-            # Generate the plot
-            self.ax.plot(x, y, label=self.what_to_plot)
-            self.ax.set_xlabel("Energy (keV)")
-            if self.what_to_plot == "model":
-                self.ax.set_ylabel(r"$\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1}$")
-            elif self.what_to_plot == "emodel":
-                self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
-            elif self.what_to_plot == "eemodel":
-                self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
-            self.ax.set_title(f"Plot of {self.model_name} {self.what_to_plot}")
-            self.ax.set_xscale('log')
-            self.ax.set_yscale('log')
+        self.ax.legend()
 
-            if AllData.nSpectra >= 1:
-                for i in range(AllData.nSpectra):
-                    self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-                    if self.backs[i] is not None and self.include_background:
-                        self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
+        # Freeze axes if option is selected
+        if (hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected):
+            self.ax.set_xlim(x_limits)
+            self.ax.set_ylim(y_limits)
+        else:
+            self.ax.relim()
+            self.ax.autoscale_view()
 
-            self.ax.legend()
+        # Rescale plot if the checkbox is checked
+        if self.rescale_checkbox.isChecked():
+            self.rescale_plot()
 
-            # Freeze axes if option is selected
-            if (hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected):
-                self.ax.set_xlim(x_limits)
-                self.ax.set_ylim(y_limits)
-            else:
-                self.ax.relim()
-                self.ax.autoscale_view()
-
-            # Rescale plot if the checkbox is checked
-            if self.rescale_checkbox.isChecked():
-                self.rescale_plot()
-
-            # Refresh canvas
-            self.canvas.draw()
+        # Refresh canvas
+        self.canvas.draw()
 
     def save_plot(self):
         """
@@ -561,61 +563,7 @@ class MainWindow(QMainWindow):
         else:
             print("No model loaded from the XCM file.")  # Print warning if no model is loaded
 
-        # Ensure plot configuration includes background
-        Plot.background = True  # Set background plot to visible
-
-        # Define arrays for plotting
-        xs, ys, xerrs, yerrs, backs, mod_total = [], [], [], [], [], []
-
-        # Load data for plotting
-        Plot('ldata')
-        for i in range(AllData.nSpectra):
-            # X-axis data
-            xs.append(np.array(Plot.x(plotGroup=i+1)))
-            # Y-axis data
-            ys.append(np.array(Plot.y(plotGroup=i+1)))
-            # X-axis errors
-            xerrs.append(np.array(Plot.xErr(plotGroup=i+1)))
-            # Y-axis errors
-            yerrs.append(np.array(Plot.yErr(plotGroup=i+1)))
-            try:
-                # Background data
-                backs.append(np.array(Plot.backgroundVals(plotGroup=i+1)))
-            except Exception as e:
-                print(f"Warning: {e}")
-                backs.append(None)  # Append None if background data is not available
-            # Model data
-            mod_total.append(np.array(Plot.model(i+1)))
-
-        # Plot data on the existing canvas
-        self.ax.clear()  # Clear previous plot
-        for i in range(AllData.nSpectra):
-            # Plot spectrum data with error bars
-            self.ax.errorbar(xs[i], ys[i], xerr=xerrs[i], yerr=yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-            # Plot model data
-            self.ax.plot(xs[i], mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
-            # Plot background data if available
-            if backs[i] is not None and self.include_background:
-                self.ax.scatter(xs[i], backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
-
-        # Set plot scales and labels
-        self.ax.set_xscale('log')  # Set x-axis to logarithmic scale
-        self.ax.set_yscale('log')  # Set y-axis to logarithmic scale
-        self.ax.set_xlabel('Energy (keV)')  # Label x-axis
-        self.ax.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')  # Label y-axis
-        self.ax.legend()  # Add legend to plot
-        self.ax.set_title(f"Plot of {self.model_name} model")  # Set plot title
-
-        # Draw the updated plot
-        self.canvas.draw()  # Refresh the canvas with the new plot
-
-        # Store data for later use
-        self.xs = xs
-        self.ys = ys
-        self.xerrs = xerrs
-        self.yerrs = yerrs
-        self.backs = backs
-        self.mod_total = mod_total
+        self.plot_data()
 
 
     def set_axes_limits(self):
@@ -947,7 +895,7 @@ class MainWindow(QMainWindow):
         # Create a dropdown for data plotting options
         dropdown = QComboBox()
         dropdown.addItems(['data', 'data+ratio', 'eufspec+delchi'])
-        dropdown.setCurrentText('data')
+        dropdown.setCurrentText(self.data_plot_option if hasattr(self, 'data_plot_option') else 'data')
 
         # Connect dropdown selection to update the attribute
         dropdown.currentTextChanged.connect(lambda text: setattr(self, 'data_plot_option', text))
@@ -971,97 +919,135 @@ class MainWindow(QMainWindow):
         if not hasattr(self, 'data_plot_option'):
             self.data_plot_option = 'data'
 
-        # Clear previous plot
-        self.ax.clear()
+        # Ensure plot configuration includes background
+        Plot.background = self.include_background  # Set background plot visibility
 
-        if self.data_plot_option == 'data':
-            Plot('data')
-            x = Plot.x()
-            y = Plot.y()
-            self.ax.plot(x, y, label=self.data_plot_option)
-            self.ax.set_xlabel("Energy (keV)")
-            self.ax.set_ylabel("Counts")
-            self.ax.set_title(f"Plot of {self.data_plot_option}")
-            self.ax.set_xscale('log')
-            self.ax.set_yscale('log')
-            self.ax.legend()
-            self.canvas.draw()
+        # Define arrays for plotting
+        xs, ys, xerrs, yerrs, backs, mod_total, ratios, ratio_errors = [], [], [], [], [], [], [], []
+        unf_xs, unf_ys, unf_xerrs, unf_yerrs, unf_model_total = [], [], [], [], []
+        delchi, delchi_errors = [], []
 
-        elif self.data_plot_option == 'data+ratio':
+        # Load data for plotting
+        for i in range(AllData.nSpectra):
             Plot('ldata')
-            x = np.array(Plot.x())
-            y = np.array(Plot.y())
-            y_model = np.array(Plot.model())
-            y_error = np.array(Plot.yErr())
+            # X-axis data
+            xs.append(np.array(Plot.x(plotGroup=i+1)))
+            # Y-axis data
+            ys.append(np.array(Plot.y(plotGroup=i+1)))
+            # X-axis errors
+            xerrs.append(np.array(Plot.xErr(plotGroup=i+1)))
+            # Y-axis errors
+            yerrs.append(np.array(Plot.yErr(plotGroup=i+1)))
+            try:
+                # Background data
+                backs.append(np.array(Plot.backgroundVals(plotGroup=i+1)))
+            except Exception as e:
+                print(f"Warning: {e}")
+                backs.append(None)  # Append None if background data is not available
+            # Model data
+            mod_total.append(np.array(Plot.model(i+1)))
 
             Plot('ratio')
-            ratio = np.array(Plot.y())
-            ratio_error = np.array(Plot.yErr())
+            ratios.append(np.array(Plot.y()))
+            ratio_errors.append(np.array(Plot.yErr()))
 
-            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-            self.canvas.figure = fig
-            self.ax = [ax1, ax2]
-
-            ax1.errorbar(x, y, yerr=y_error, fmt='.', label='data')
-            ax1.plot(x, y_model, label='model')
-            ax1.set_ylabel("Counts")
-            ax1.set_title("Data and Ratio")
-            ax1.set_xscale('log')
-            ax1.set_yscale('log')
-            ax1.legend()
-
-            ax2.errorbar(x, ratio, ratio_error, fmt='.', label='ratio')
-            ax2.set_xlabel("Energy (keV)")
-            ax2.set_ylabel("Ratio")
-            ax2.set_xscale('log')
-            ax2.legend()
-
-            self.canvas.draw()
-
-        elif self.data_plot_option == 'eufspec+delchi':
             Plot('eufspec')
-            x = np.array(Plot.x())
-            y = np.array(Plot.y())
-            y_model = np.array(Plot.model())
-            y_error = np.array(Plot.yErr())
+            unf_xs.append(np.array(Plot.x(plotGroup=i+1)))
+            unf_ys.append(np.array(Plot.y(plotGroup=i+1)))
+            unf_xerrs.append(np.array(Plot.xErr(plotGroup=i+1)))
+            unf_yerrs.append(np.array(Plot.yErr(plotGroup=i+1)))
+            unf_model_total.append(np.array(Plot.model(i+1)))
 
             Plot('delchi')
-            delchi = np.array(Plot.y())
-            delchi_error = np.array(Plot.yErr())
+            delchi.append(np.array(Plot.y()))
+            delchi_errors.append(np.array(Plot.yErr()))
 
-            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-            self.canvas.figure = fig
-            self.ax = [ax1, ax2]
+        # Create a new figure and axis
+        self.canvas.figure.clear()
+        self.ax = self.canvas.figure.add_subplot(111)
+        for i in range(AllData.nSpectra):
+            if self.data_plot_option == 'data':
+                # Plot spectrum data with error bars
+                self.ax.errorbar(xs[i], ys[i], xerr=xerrs[i], yerr=yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                # Plot model data
+                self.ax.plot(xs[i], mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
+                # Plot background data if available
+                # Set plot scales and labels
+                self.ax.set_xscale('log')  # Set x-axis to logarithmic scale
+                self.ax.set_yscale('log')  # Set y-axis to logarithmic scale
+                self.ax.set_xlabel('Energy (keV)')  # Label x-axis
+                self.ax.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')  # Label y-axis
+                self.ax.legend()  # Add legend to plot
+                self.ax.set_title(f"Plot of {self.data_plot_option}")  # Set plot title
 
-            ax1.errorbar(x, y, yerr=y_error, fmt='.', label='eufspec')
-            ax1.plot(x, y_model, label='model')
-            ax1.set_ylabel("Counts")
-            ax1.set_title("Eufspec and Delchi")
-            ax1.set_xscale('log')
-            ax1.set_yscale('log')
-            ax1.legend()
+                if backs[i] is not None and self.include_background:
+                    self.ax.scatter(xs[i], backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
 
-            ax2.errorbar(x, delchi, yerr=delchi_error, fmt='.', label='delchi')
-            ax2.set_xlabel("Energy (keV)")
-            ax2.set_ylabel("Delchi")
-            ax2.set_xscale('log')
-            ax2.legend()
+            elif self.data_plot_option == 'data+ratio':
+                fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+                self.canvas.figure = fig
+                self.ax = [ax1, ax2]
 
-            self.canvas.draw()
+                ax1.errorbar(xs[i], ys[i], xerr=xerrs[i], yerr=yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                ax1.plot(xs[i], mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
+
+                # Set plot scales and labels
+                ax1.set_xscale('log')  # Set x-axis to logarithmic scale
+                ax1.set_yscale('log')  # Set y-axis to logarithmic scale
+                ax1.set_xlabel('Energy (keV)')  # Label x-axis
+                ax1.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')  # Label y-axis
+                ax1.legend()  # Add legend to plot
+                ax1.set_title(f"Plot of data")  # Set plot title
+
+                ax2.errorbar(xs[i], ratios[i], yerr=ratio_errors[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                ax2.set_xlabel('Energy (keV)')  # Label x-axis
+                ax2.set_ylabel('Ratio')  # Label y-axis
+                ax2.legend()  # Add legend to plot
+                ax2.set_title(f"Plot of ratio")  # Set plot title
+
+            elif self.data_plot_option == 'eufspec+delchi':
+                fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+                self.canvas.figure = fig
+                self.ax = [ax1, ax2]
+
+                ax1.errorbar(unf_xs[i], unf_ys[i], xerr=unf_xerrs[i], yerr=unf_yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                ax1.plot(unf_xs[i], unf_model_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
+
+                # Set plot scales and labels
+                ax1.set_xscale('log')  # Set x-axis to logarithmic scale
+                ax1.set_yscale('log')  # Set y-axis to logarithmic scale
+                ax1.set_xlabel('Energy (keV)')  # Label x-axis
+                ax1.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')  # Label y-axis
+                ax1.legend()  # Add legend to plot
+                ax1.set_title(f"Plot of eufspec")  # Set plot title
+
+                ax2.errorbar(unf_xs[i], delchi[i], yerr=delchi_errors[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                ax2.set_xlabel('Energy (keV)')  # Label x-axis
+                ax2.set_ylabel('Delchi')  # Label y-axis
+                ax2.legend()  # Add legend to plot
+                ax2.set_title(f"Plot of delchi")  # Set plot title
+
+        # Store data for later use
+        self.xs = xs
+        self.ys = ys
+        self.xerrs = xerrs
+        self.yerrs = yerrs
+        self.backs = backs
+        self.mod_total = mod_total
+
+        self.canvas.draw()
 
     def rescale_plot(self):
         """
         Rescale the y-axis limits of the plot based on the checkbox state.
         """
         if isinstance(self.ax, list):
-            for ax in self.ax:
-                y_data = [line.get_ydata() for line in ax.get_lines()]
-                max_y = max([max(y) for y in y_data if len(y) > 0])
-                ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
+            ax = self.ax[0]
         else:
-            y_data = [line.get_ydata() for line in self.ax.get_lines()]
-            max_y = max([max(y) for y in y_data if len(y) > 0])
-            self.ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
+            ax = self.ax
+        y_data = [line.get_ydata() for line in ax.get_lines()]
+        max_y = max([max(y) for y in y_data if len(y) > 0])
+        ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
         self.canvas.draw()
 
     def load_plot_style(self):
