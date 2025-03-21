@@ -204,7 +204,7 @@ class MainWindow(QMainWindow):
         if not self.is_model_loaded:
             # Retrieve the model name from the textbox and initialize the model
             self.model_name = self.model_textbox.text().strip()
-            self.model = Model(self.model_name)
+            self.models = [Model(self.model_name)]
 
         try:
             # Clear existing sliders or textboxes
@@ -220,98 +220,104 @@ class MainWindow(QMainWindow):
                     widget.deleteLater()
 
             # Initialize lists to store labels and indices for model parameters
-            labels = []
-            indices = []
-            labels_in_comps = []
-            i = 1
+            self.labels = []
+            self.indices = []
+            self.labels_in_comps = []
+            self.comps = []
 
-            # Extract component names from the model
-            comps = self.model.componentNames
-            for component in comps:
-                # Get parameter names for each component
-                labels_in_component = getattr(self.model, component).parameterNames
-                labels_in_comps.append(labels_in_component)
-                for par in labels_in_component:
-                    # Add parameter to list if it's not linked
-                    if getattr(getattr(self.model, component), par).link == '':
-                        indices.append(i)
-                        if par == 'norm':
-                            labels.append(par + '_' + component[0])
-                        else:
-                            labels.append(par)
-                        i += 1
+            for model in self.models:
+                labels = []
+                indices = []
+                labels_in_comps = []
+                i = 1
 
-            # Store extracted labels and indices
-            self.labels = labels
-            self.indices = indices
-            self.labels_in_comps = labels_in_comps
-            self.comps = comps
+                # Extract component names from the model
+                comps = model.componentNames
+                for component in comps:
+                    # Get parameter names for each component
+                    labels_in_component = getattr(model, component).parameterNames
+                    labels_in_comps.append(labels_in_component)
+                    for par in labels_in_component:
+                        # Add parameter to list if it's not linked
+                        if getattr(getattr(model, component), par).link == '':
+                            indices.append(i)
+                            if par == 'norm':
+                                labels.append(par + '_' + component[0])
+                            else:
+                                labels.append(par)
+                            i += 1
 
-            # Initialize model parameters list
-            self.model_params = []
-            for i in range(len(labels_in_comps)):
-                for j in range(len(labels_in_comps[i])):
-                    param = getattr(getattr(self.model, comps[i]), labels_in_comps[i][j])
-                    if getattr(self, 'show_frozen_parameters', True) or (not param.frozen and param.link == ''):
-                        self.model_params.append(param)
+                # Store extracted labels and indices
+                self.labels.append(labels)
+                self.indices.append(indices)
+                self.labels_in_comps.append(labels_in_comps)
+                self.comps.append(comps)
 
-            counter = 0
-            for i in range(len(labels_in_comps)):
-                component_label = QLabel(f"Component: {comps[i]}")
-                left_panel.insertWidget(counter * 2 + 1, component_label)
-                counter += 1
+                # Initialize model parameters list
+                self.model_params = []
+                for i in range(len(labels_in_comps)):
+                    for j in range(len(labels_in_comps[i])):
+                        param = getattr(getattr(model, comps[i]), labels_in_comps[i][j])
+                        if getattr(self, 'show_frozen_parameters', True) or (not param.frozen and param.link == ''):
+                            self.model_params.append(param)
 
-                for j in range(len(labels_in_comps[i])):
-                    param = getattr(getattr(self.model, comps[i]), labels_in_comps[i][j])
-                    label = QLabel(f"{param.name}: {param.values[0]:.3f}")  # Display parameter value
+                counter = 0
+                for i in range(len(labels_in_comps)):
+                    component_label = QLabel(f"Component: {comps[i]}")
+                    left_panel.insertWidget(counter * 2 + 1, component_label)
+                    counter += 1
 
-                    if param in self.model_params:
-                        if hasattr(self, 'use_textboxes_selected') and self.use_textboxes_selected:
-                            # Use textboxes for parameter input
-                            if not self.param_textboxes:
-                                for slider in self.param_sliders:
-                                    left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                                    left_panel.removeWidget(slider)
-                                    slider.deleteLater()
-                                self.param_sliders.clear()
-                                for label in self.param_labels:
-                                    left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                                    left_panel.removeWidget(label)
-                                    label.deleteLater()
-                                self.param_labels.clear()
-                                
-                            label = QLabel(f"{param.name}: {param.values[0]:.3f}")
-                            textbox = QLineEdit(str(param.values[0]))
-                            textbox.editingFinished.connect(lambda tb=textbox, p=param: setattr(p, 'values', [float(tb.text())]))
-                            left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                            left_panel.insertWidget(counter * 2, label)
-                            left_panel.insertWidget(counter * 2 + 1, textbox)
-                            self.param_textboxes.append(textbox)
-                            self.param_labels.append(label)
-                        else:
-                            # Use sliders for parameter input
-                            for textbox in self.param_textboxes:
+                    for j in range(len(labels_in_comps[i])):
+                        param = getattr(getattr(model, comps[i]), labels_in_comps[i][j])
+                        label = QLabel(f"{param.name}: {param.values[0]:.3f}")  # Display parameter value
+
+                        if param in self.model_params:
+                            if hasattr(self, 'use_textboxes_selected') and self.use_textboxes_selected:
+                                # Use textboxes for parameter input
+                                if not self.param_textboxes:
+                                    for slider in self.param_sliders:
+                                        left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                                        left_panel.removeWidget(slider)
+                                        slider.deleteLater()
+                                    self.param_sliders.clear()
+                                    for label in self.param_labels:
+                                        left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                                        left_panel.removeWidget(label)
+                                        label.deleteLater()
+                                    self.param_labels.clear()
+                                    
+                                label = QLabel(f"{param.name}: {param.values[0]:.3f}")
+                                textbox = QLineEdit(str(param.values[0]))
+                                textbox.editingFinished.connect(lambda tb=textbox, p=param: setattr(p, 'values', [float(tb.text())]))
                                 left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                                left_panel.removeWidget(textbox)
-                                textbox.deleteLater()
-                            self.param_textboxes.clear()
-                            slider, scale_factor, precision_factor = self.create_slider(param)
-                            slider.valueChanged.connect(lambda value, p=param, l=label, sf=scale_factor, pf=precision_factor: self.update_param_label(value, p, l, sf, pf))
-                            left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                            left_panel.insertWidget(counter * 2, label)
-                            left_panel.insertWidget(counter * 2 + 1, slider)
-                            self.param_sliders.append(slider)
-                            self.scale_factors.append(scale_factor)
-                            self.precision_factors.append(precision_factor)
-                            self.param_labels.append(label)
+                                left_panel.insertWidget(counter * 2, label)
+                                left_panel.insertWidget(counter * 2 + 1, textbox)
+                                self.param_textboxes.append(textbox)
+                                self.param_labels.append(label)
+                            else:
+                                # Use sliders for parameter input
+                                for textbox in self.param_textboxes:
+                                    left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                                    left_panel.removeWidget(textbox)
+                                    textbox.deleteLater()
+                                self.param_textboxes.clear()
+                                slider, scale_factor, precision_factor = self.create_slider(param)
+                                slider.valueChanged.connect(lambda value, p=param, l=label, sf=scale_factor, pf=precision_factor: self.update_param_label(value, p, l, sf, pf))
+                                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                                left_panel.insertWidget(counter * 2, label)
+                                left_panel.insertWidget(counter * 2 + 1, slider)
+                                self.param_sliders.append(slider)
+                                self.scale_factors.append(scale_factor)
+                                self.precision_factors.append(precision_factor)
+                                self.param_labels.append(label)
 
-                        counter += 1
-                # Insert a horizontal line after each component's parameters
-                line = QFrame()
-                line.setFrameShape(QFrame.HLine)
-                line.setFrameShadow(QFrame.Sunken)
-                left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
-                left_panel.insertWidget(counter * 2, line)
+                            counter += 1
+                    # Insert a horizontal line after each component's parameters
+                    line = QFrame()
+                    line.setFrameShape(QFrame.HLine)
+                    line.setFrameShadow(QFrame.Sunken)
+                    left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
+                    left_panel.insertWidget(counter * 2, line)
 
             # Hide the label and textbox after loading the model
             self.model_label.hide()
@@ -412,7 +418,7 @@ class MainWindow(QMainWindow):
             self.plot_different_components()
         else:
             # Ensure the model is set for the plot
-            if not hasattr(self, 'model'):
+            if not hasattr(self, 'models'):
                 self.load_model()
             self.update_plot()
 
@@ -530,7 +536,15 @@ class MainWindow(QMainWindow):
             os.chdir(path_head)
             Xset.restore(path_tail)
             os.chdir(current_dir)
-            self.model = AllModels(1)
+            i = 1
+            self.models = []
+            while True:
+                try:
+                    model = AllModels(i)
+                    self.models.append(model)
+                    i += 1
+                except Exception:
+                    break
 
             QMessageBox.information(self, "Open XCM File", f"Model parameters loaded from {file_path}")
             self.load_model()  # Update the UI with the loaded parameters
@@ -554,17 +568,25 @@ class MainWindow(QMainWindow):
         os.chdir(current_dir)
 
         # Check if models are loaded and update instance attributes
-        if AllModels(1):
-            self.model = AllModels(1)  # Set the model from loaded data
-            self.model_name = AllModels(1).name  # Get the model name
-            print(f"Loaded model: {self.model_name}")  # Print the loaded model name
+        self.models = []
+        i = 1
+        while True:
+            try:
+                model = AllModels(i)
+                self.models.append(model)
+                i += 1
+            except Exception:
+                break
+
+        if self.models:
+            self.model_name = self.models[0].name  # Get the model name
+            print(f"Loaded models: {[model.name for model in self.models]}")  # Print the loaded model names
             self.is_model_loaded = True
-            self.load_model()  # Update sliders and labels with the loaded model
+            self.load_model()  # Update sliders and labels with the loaded models
         else:
-            print("No model loaded from the XCM file.")  # Print warning if no model is loaded
+            print("No models loaded from the XCM file.")  # Print warning if no models are loaded
 
         self.plot_data()
-
 
     def set_axes_limits(self):
         """
@@ -641,7 +663,7 @@ class MainWindow(QMainWindow):
         """
         Plot the different components of the model separately.
         """
-        if not hasattr(self, 'model'):
+        if not hasattr(self, 'models') or not self.models:
             QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
             return
 
@@ -652,34 +674,35 @@ class MainWindow(QMainWindow):
         # Clear previous plot
         self.ax.clear()
 
-        # Store original model parameters
-        original_params = {}
+        for model in self.models:
+            # Store original model parameters
+            original_params = {}
 
-        for component in self.comps:
-            # Check if the component has a 'norm' attribute
-            if hasattr(getattr(self.model, component), 'norm'):
-                # Store original normalization value
-                original_params[component] = getattr(self.model, component).norm.values[0]
+            for component in model.componentNames:
+                # Check if the component has a 'norm' attribute
+                if hasattr(getattr(model, component), 'norm'):
+                    # Store original normalization value
+                    original_params[component] = getattr(model, component).norm.values[0]
 
-        for component in self.comps:
-            # Check if the component has a 'norm' attribute
-            if hasattr(getattr(self.model, component), 'norm'):
-                # Set all other components' normalization to 0
-                for other_component in self.comps:
-                    if other_component != component and hasattr(getattr(self.model, other_component), 'norm'):
-                        getattr(self.model, other_component).norm = 0
+            for component in model.componentNames:
+                # Check if the component has a 'norm' attribute
+                if hasattr(getattr(model, component), 'norm'):
+                    # Set all other components' normalization to 0
+                    for other_component in model.componentNames:
+                        if other_component != component and hasattr(getattr(model, other_component), 'norm'):
+                            getattr(model, other_component).norm = 0
 
-                # Plot the data
-                Plot(self.what_to_plot)
-                x = Plot.x()
-                y = Plot.model()
+                    # Plot the data
+                    Plot(self.what_to_plot)
+                    x = Plot.x()
+                    y = Plot.model()
 
-                # Plot the component
-                self.ax.plot(x, y, label=f'{component}', color=SPECTRUM_COLORS[self.comps.index(component) % len(SPECTRUM_COLORS)])
+                    # Plot the component
+                    self.ax.plot(x, y, label=f'{component}', color=SPECTRUM_COLORS[model.componentNames.index(component) % len(SPECTRUM_COLORS)])
 
-                # Restore original normalization values
-                for comp, norm in original_params.items():
-                    getattr(self.model, comp).norm = norm
+                    # Restore original normalization values
+                    for comp, norm in original_params.items():
+                        getattr(model, comp).norm = norm
 
         # Plot data if available
         if AllData.nSpectra >= 1:
