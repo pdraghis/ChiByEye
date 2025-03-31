@@ -52,6 +52,8 @@ DEFAULT_DATA_PLOT_OPTION = 'data'
 DEFAULT_COLOR_MAP = "plasma"
 DEFAULT_SPACING = "linear"
 DEFAULT_CURVE_COUNT = 10
+Plot.area = True
+Plot.setRebin(10, 10, -1)
 
 class MainWindow(QMainWindow):
     """
@@ -971,8 +973,8 @@ class MainWindow(QMainWindow):
             mod_total.append(np.array(Plot.model(i+1)))
 
             Plot('ratio')
-            ratios.append(np.array(Plot.y()))
-            ratio_errors.append(np.array(Plot.yErr()))
+            ratios.append(np.array(Plot.y(plotGroup=i+1)))
+            ratio_errors.append(np.array(Plot.yErr(plotGroup=i+1)))
 
             Plot('eufspec')
             unf_xs.append(np.array(Plot.x(plotGroup=i+1)))
@@ -982,14 +984,14 @@ class MainWindow(QMainWindow):
             unf_model_total.append(np.array(Plot.model(i+1)))
 
             Plot('delchi')
-            delchi.append(np.array(Plot.y()))
-            delchi_errors.append(np.array(Plot.yErr()))
+            delchi.append(np.array(Plot.y(plotGroup=i+1)))
+            delchi_errors.append(np.array(Plot.yErr(plotGroup=i+1)))
 
         # Create a new figure and axis
         self.canvas.figure.clear()
         self.ax = self.canvas.figure.add_subplot(111)
-        for i in range(AllData.nSpectra):
-            if self.data_plot_option == 'data':
+        if self.data_plot_option == 'data':
+            for i in range(AllData.nSpectra):
                 # Plot spectrum data with error bars
                 self.ax.errorbar(xs[i], ys[i], xerr=xerrs[i], yerr=yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
                 # Plot model data
@@ -1006,11 +1008,13 @@ class MainWindow(QMainWindow):
                 if backs[i] is not None and self.include_background:
                     self.ax.scatter(xs[i], backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
 
-            elif self.data_plot_option == 'data+ratio':
-                fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-                self.canvas.figure = fig
-                self.ax = [ax1, ax2]
 
+        elif self.data_plot_option == 'data+ratio':
+            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+            self.canvas.figure = fig
+            self.ax = [ax1, ax2]
+
+            for i in range(AllData.nSpectra):
                 ax1.errorbar(xs[i], ys[i], xerr=xerrs[i], yerr=yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
                 ax1.plot(xs[i], mod_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
 
@@ -1022,16 +1026,18 @@ class MainWindow(QMainWindow):
                 ax1.legend()  # Add legend to plot
                 ax1.set_title(f"Plot of data")  # Set plot title
 
-                ax2.errorbar(xs[i], ratios[i], yerr=ratio_errors[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                ax2.errorbar(xs[i], ratios[i], xerr = xerrs[i], yerr=ratio_errors[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
                 ax2.set_xlabel('Energy (keV)')  # Label x-axis
                 ax2.set_ylabel('Ratio')  # Label y-axis
                 ax2.legend()  # Add legend to plot
                 ax2.set_title(f"Plot of ratio")  # Set plot title
 
-            elif self.data_plot_option == 'eufspec+delchi':
-                fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-                self.canvas.figure = fig
-                self.ax = [ax1, ax2]
+        elif self.data_plot_option == 'eufspec+delchi':
+            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+            self.canvas.figure = fig
+            self.ax = [ax1, ax2]
+
+            for i in range(AllData.nSpectra):
 
                 ax1.errorbar(unf_xs[i], unf_ys[i], xerr=unf_xerrs[i], yerr=unf_yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
                 ax1.plot(unf_xs[i], unf_model_total[i], label=f'Model {i+1}', color=SPECTRUM_COLORS[i])
@@ -1050,13 +1056,25 @@ class MainWindow(QMainWindow):
                 ax2.legend()  # Add legend to plot
                 ax2.set_title(f"Plot of delchi")  # Set plot title
 
-        # Store data for later use
-        self.xs = xs
-        self.ys = ys
-        self.xerrs = xerrs
-        self.yerrs = yerrs
-        self.backs = backs
-        self.mod_total = mod_total
+        if isinstance(self.ax, list):
+            ax1, ax2 = tuple(self.ax)
+            if hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected:
+                ax1.set_xlim(self.ax1.get_xlim())
+                ax1.set_ylim(self.ax1.get_ylim())
+                ax2.set_xlim(self.ax2.get_xlim())
+                ax2.set_ylim(self.ax2.get_ylim())
+            else:
+                ax1.relim()
+                ax1.autoscale_view()
+                ax2.relim()
+                ax2.autoscale_view()
+        else:
+            if hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected:
+                self.ax.set_xlim(self.ax.get_xlim())
+                self.ax.set_ylim(self.ax.get_ylim())
+            else:
+                self.ax.relim()
+                self.ax.autoscale_view()
 
         self.canvas.draw()
 
