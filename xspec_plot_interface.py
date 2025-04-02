@@ -227,7 +227,7 @@ class MainWindow(QMainWindow):
             self.labels_in_comps = []
             self.comps = []
 
-            for model in self.models:
+            for model in reversed(self.models):
                 labels = []
                 indices = []
                 labels_in_comps = []
