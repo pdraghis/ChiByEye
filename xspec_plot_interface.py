@@ -588,6 +588,39 @@ class MainWindow(QMainWindow):
         else:
             print("No models loaded from the XCM file.")  # Print warning if no models are loaded
 
+        # Initialize data attributes
+        self.xs, self.ys, self.xerrs, self.yerrs, self.backs = [], [], [], [], []
+        self.ratios, self.ratio_errors = [], []
+        self.unf_xs, self.unf_ys, self.unf_xerrs, self.unf_yerrs = [], [], [], []
+        self.delchi, self.delchi_errors = [], []
+
+        # Load data for plotting
+        for i in range(AllData.nSpectra):
+            Plot('ldata')
+            self.xs.append(np.array(Plot.x(plotGroup=i+1)))
+            self.ys.append(np.array(Plot.y(plotGroup=i+1)))
+            self.xerrs.append(np.array(Plot.xErr(plotGroup=i+1)))
+            self.yerrs.append(np.array(Plot.yErr(plotGroup=i+1)))
+            try:
+                self.backs.append(np.array(Plot.backgroundVals(plotGroup=i+1)))
+            except Exception as e:
+                print(f"Warning: {e}")
+                self.backs.append(None)  # Append None if background data is not available
+
+            Plot('ratio')
+            self.ratios.append(np.array(Plot.y(plotGroup=i+1)))
+            self.ratio_errors.append(np.array(Plot.yErr(plotGroup=i+1)))
+
+            Plot('eufspec')
+            self.unf_xs.append(np.array(Plot.x(plotGroup=i+1)))
+            self.unf_ys.append(np.array(Plot.y(plotGroup=i+1)))
+            self.unf_xerrs.append(np.array(Plot.xErr(plotGroup=i+1)))
+            self.unf_yerrs.append(np.array(Plot.yErr(plotGroup=i+1)))
+
+            Plot('delchi')
+            self.delchi.append(np.array(Plot.y(plotGroup=i+1)))
+            self.delchi_errors.append(np.array(Plot.yErr(plotGroup=i+1)))
+
         self.plot_data()
 
     def set_axes_limits(self):
@@ -765,25 +798,40 @@ class MainWindow(QMainWindow):
 
     def plot_same_curve_n_times(self):
         """
-        Display a dialog to input parameters and plot the same curve multiple times.
+        Display a dialog to input parameters and plot the same curve multiple times for a selected model.
         """
+        if not hasattr(self, 'models') or not self.models:
+            QMessageBox.warning(self, 'No Models Loaded', 'Please load models first.')
+            return
+
         dialog = QDialog(self)
-        dialog.setWindowTitle("Plot same curve N times")
+        dialog.setWindowTitle("Plot Same Curve N Times")
 
         layout = QVBoxLayout()
 
-        # Compute the parameter-to-component dictionary dynamically
-        param_to_component = {}
-        for i, component in enumerate(self.comps):
-            for j, param in enumerate(self.labels_in_comps[i]):
-                param_to_component[f'{param}_{component}'] = component
+        # Dropdown for selecting the model
+        model_label = QLabel("Select model:")
+        model_combo = QComboBox()
+        model_combo.addItems([model.name for model in self.models])
+        layout.addWidget(model_label)
+        layout.addWidget(model_combo)
 
         # Dropdown for selecting parameter
         param_label = QLabel("Select parameter:")
         param_combo = QComboBox()
-        param_combo.addItems(list(param_to_component.keys()))  # Assuming self.labels contains model parameters
         layout.addWidget(param_label)
         layout.addWidget(param_combo)
+
+        # Update parameter dropdown when a model is selected
+        def update_param_dropdown():
+            selected_model = self.models[model_combo.currentIndex()]
+            param_combo.clear()
+            for component in selected_model.componentNames:
+                for param in getattr(selected_model, component).parameterNames:
+                    param_combo.addItem(f"{param} ({component})", (component, param))
+
+        model_combo.currentIndexChanged.connect(update_param_dropdown)
+        update_param_dropdown()  # Initialize the parameter dropdown
 
         # Choice for spacing
         spacing_label = QLabel("Spacing:")
@@ -824,19 +872,43 @@ class MainWindow(QMainWindow):
         dialog.setLayout(layout)
 
         def on_accept():
-            selected_param = param_combo.currentText()
+            selected_model = self.models[model_combo.currentIndex()]
+            component, param_name = param_combo.currentData()
             param_min = float(param_min_input.text())
             param_max = float(param_max_input.text())
             n = int(n_input.text())
             spacing = spacing_combo.currentText()
             cmap_name = cmap_combo.currentText()
 
-            if not hasattr(self, 'model'):
-                QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
-                return
+            # Get the parameter object
+            param_obj = getattr(getattr(selected_model, component), param_name)
 
             # Clear previous plot
             self.ax.clear()
+
+            # Plot the loaded data if available
+            if self.is_data_loaded and AllData.nSpectra >= 1:
+                if self.data_plot_option == 'data':
+                    for i in range(AllData.nSpectra):
+                        self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                        if self.backs[i] is not None and self.include_background:
+                            self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
+                elif self.data_plot_option == 'data+ratio':
+                    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+                    self.canvas.figure = fig
+                    self.ax = [ax1, ax2]
+
+                    for i in range(AllData.nSpectra):
+                        ax1.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                        ax2.errorbar(self.xs[i], self.ratios[i], yerr=self.ratio_errors[i], fmt='.', label=f'Ratio {i+1}', color=SPECTRUM_COLORS[i])
+                elif self.data_plot_option == 'eufspec+delchi':
+                    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+                    self.canvas.figure = fig
+                    self.ax = [ax1, ax2]
+
+                    for i in range(AllData.nSpectra):
+                        ax1.errorbar(self.unf_xs[i], self.unf_ys[i], xerr=self.unf_xerrs[i], yerr=self.unf_yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                        ax2.errorbar(self.unf_xs[i], self.delchi[i], yerr=self.delchi_errors[i], fmt='.', label=f'Delchi {i+1}', color=SPECTRUM_COLORS[i])
 
             # Determine color normalization based on spacing
             if spacing == "linear":
@@ -849,6 +921,9 @@ class MainWindow(QMainWindow):
             cmap = cm.get_cmap(cmap_name)
             colors = cmap(norm(values))
 
+            # Store the original parameter value
+            original_value = param_obj.values[0]
+
             # Plot the same curve N times with specified spacing and colors
             for i in range(n):
                 # Adjust the model parameter
@@ -857,22 +932,18 @@ class MainWindow(QMainWindow):
                 else:
                     param_value = param_min * (param_max / param_min) ** (i / (n - 1))
 
-                # Use the dictionary to get the component name
-                component_name = param_to_component.get(selected_param)
-                param_name = selected_param.split('_')[0]
-                param_obj = getattr(getattr(self.model, component_name), param_name)
                 param_obj.values = [param_value] + param_obj.values[1:]
 
-                # Recalculate the model using self.model
+                # Recalculate the model
                 Plot(self.what_to_plot)
                 x = Plot.x()
                 y = Plot.model()
 
                 # Plot the curve
-                self.ax.plot(x, y, label=f'{selected_param}={param_value:.2f}', linestyle='--', color=colors[i])
+                self.ax.plot(x, y, label=f'{param_name}={param_value:.2f}', linestyle='--', color=colors[i])
 
-            # Restore original parameter values
-            param_obj.values[0] = param_min
+            # Restore the original parameter value
+            param_obj.values = [original_value] + param_obj.values[1:]
 
             # Set plot labels and title
             self.ax.set_xlabel('Energy (keV)')
@@ -882,7 +953,7 @@ class MainWindow(QMainWindow):
                 self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
             elif self.what_to_plot == "eemodel":
                 self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
-            self.ax.set_title('Repeated Plot of Model')
+            self.ax.set_title(f'Repeated Plot of {selected_model.name}')
             self.ax.set_xscale('log')
             self.ax.set_yscale('log')
             self.ax.legend()
