@@ -43,7 +43,7 @@ WINDOW_GEOMETRY = (100, 100, 1000, 600)
 PLOT_X_AXIS = 'keV'
 PLOT_X_LOG = True
 PLOT_Y_LOG = True
-PLOT_Y_MIN_FACTOR = 10**(-15)
+PLOT_Y_MIN_FACTOR = 10**(-5)
 PLOT_Y_MAX_FACTOR = 1.15
 SLIDER_PRECISION_FACTOR = 1000
 DEFAULT_MODEL_NAME = "e.g., powerlaw"
@@ -345,7 +345,7 @@ class MainWindow(QMainWindow):
             # Show the rescale checkbox
             self.rescale_checkbox.show()
             # Update the plot with the new model
-            self.update_plot()
+            self.update_plot(True)
 
         except Exception as e:
             # Display an error message if model loading fails
@@ -443,7 +443,7 @@ class MainWindow(QMainWindow):
             self.update_plot()
 
 
-    def update_plot(self):
+    def update_plot(self, plot_model=False):
         """
         Generate the plot using the current XSPEC model parameters.
         """
@@ -452,7 +452,7 @@ class MainWindow(QMainWindow):
         Plot.xLog = PLOT_X_LOG
         Plot.yLog = PLOT_Y_LOG
 
-        if AllData.nSpectra > 0:
+        if AllData.nSpectra > 0 and not plot_model:
             Plot("ldata")
         else:
             Plot(self.what_to_plot)  # Load the model
@@ -462,11 +462,16 @@ class MainWindow(QMainWindow):
         y = Plot.model()
 
         # Store current axes limits
-        x_limits = self.ax.get_xlim()
-        y_limits = self.ax.get_ylim()
+        if isinstance(self.ax, list):
+            ax = self.ax[0]
+        else:
+            ax = self.ax
+        
+        x_limits = ax.get_xlim()
+        y_limits = ax.get_ylim()
 
-        # Clear previous plot
-        self.ax.clear()
+        self.canvas.figure.clear()
+        self.ax = self.canvas.figure.add_subplot(111)
 
         # Generate the plot
         self.ax.plot(x, y, label=self.what_to_plot)
@@ -480,13 +485,14 @@ class MainWindow(QMainWindow):
         self.ax.set_xscale('log')
         self.ax.set_yscale('log')
 
-        if AllData.nSpectra >= 1:
+        if AllData.nSpectra >= 1 and not plot_model:
             for i in range(AllData.nSpectra):
                 self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
                 if self.backs[i] is not None and self.include_background:
                     self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
 
         self.ax.legend()
+
 
         # Freeze axes if option is selected
         if (hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected):
@@ -522,15 +528,16 @@ class MainWindow(QMainWindow):
         """
         if option_name == 'Freeze Axes':
             self.freeze_axes_selected = not getattr(self, 'freeze_axes_selected', False)
-        elif option_name == 'Use Textboxes for Parameters':
-            self.use_textboxes_selected = not getattr(self, 'use_textboxes_selected', False)
-        elif option_name == 'Plot Different Components':
-            self.plot_components_selected = not getattr(self, 'plot_components_selected', False)
-        elif option_name == 'Include Background':
-            self.include_background = not getattr(self, 'include_background', False)
-        elif option_name == 'Show Frozen Parameters':
-            self.show_frozen_parameters = not getattr(self, 'show_frozen_parameters', False)
-        self.load_model()
+        else:
+            if option_name == 'Show Frozen Parameters':
+                self.show_frozen_parameters = not getattr(self, 'show_frozen_parameters', False)
+            elif option_name == 'Use Textboxes for Parameters':
+                self.use_textboxes_selected = not getattr(self, 'use_textboxes_selected', False)
+            elif option_name == 'Plot Different Components':
+                self.plot_components_selected = not getattr(self, 'plot_components_selected', False)
+            elif option_name == 'Include Background':
+                self.include_background = not getattr(self, 'include_background', False)
+            self.load_model()
 
     def save_parameters_as_xcm(self):
         """
@@ -695,14 +702,29 @@ class MainWindow(QMainWindow):
         - dialog (QDialog): The dialog instance to close upon successful application.
         """
         try:
-            if x_min:
-                self.ax.set_xlim(left=float(x_min))
-            if x_max:
-                self.ax.set_xlim(right=float(x_max))
-            if y_min:
-                self.ax.set_ylim(bottom=float(y_min))
-            if y_max:
-                self.ax.set_ylim(top=float(y_max))
+            if isinstance(self.ax, list):
+                ax1, ax2 = tuple(self.ax)
+                if x_min:
+                    ax1.set_xlim(left=float(x_min))
+                    ax2.set_xlim(left=float(x_min))
+                if x_max:
+                    ax1.set_xlim(right=float(x_max))
+                    ax2.set_xlim(right=float(x_max))
+                if y_min:
+                    ax1.set_ylim(bottom=float(y_min))
+                    ax2.set_ylim(bottom=float(y_min))
+                if y_max:
+                    ax1.set_ylim(top=float(y_max))
+                    ax2.set_ylim(top=float(y_max))
+            else:
+                if x_min:
+                    self.ax.set_xlim(left=float(x_min))
+                if x_max:
+                    self.ax.set_xlim(right=float(x_max))
+                if y_min:
+                    self.ax.set_ylim(bottom=float(y_min))
+                if y_max:
+                    self.ax.set_ylim(top=float(y_max))
             self.canvas.draw()
             dialog.accept()
             self.freeze_axes_selected = True
@@ -719,12 +741,18 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
             return
 
-        # Store current axes limits
-        x_limits = self.ax.get_xlim()
-        y_limits = self.ax.get_ylim()
+         # Store current axes limits
+        if isinstance(self.ax, list):
+            ax = self.ax[0]
+        else:
+            ax = self.ax
+        
+        x_limits = ax.get_xlim()
+        y_limits = ax.get_ylim()
 
-        # Clear previous plot
-        self.ax.clear()
+        self.canvas.figure.clear()
+        self.ax = self.canvas.figure.add_subplot(111)
+
 
         for model in self.models:
             # Store original model parameters
@@ -803,7 +831,7 @@ class MainWindow(QMainWindow):
 
         # Add OK and Cancel buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttons.accepted.connect(lambda: [dialog.accept(), self.update_plot()])
+        buttons.accepted.connect(lambda: [dialog.accept(), self.update_plot(True)])
         buttons.rejected.connect(dialog.reject)
 
         # Add widgets to layout
@@ -888,6 +916,10 @@ class MainWindow(QMainWindow):
 
         dialog.setLayout(layout)
 
+        # Clear previous plot
+        self.canvas.figure.clear()
+        self.ax = self.canvas.figure.add_subplot(111)
+
         def on_accept():
             selected_model = self.models[model_combo.currentIndex()]
             component, param_name = param_combo.currentData()
@@ -900,33 +932,13 @@ class MainWindow(QMainWindow):
             # Get the parameter object
             param_obj = getattr(getattr(selected_model, component), param_name)
 
-            # Clear previous plot
-            self.ax.clear()
-
             # Plot the loaded data if available
-            if self.is_data_loaded and AllData.nSpectra >= 1:
-                if self.data_plot_option == 'data':
-                    for i in range(AllData.nSpectra):
-                        self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-                        if self.backs[i] is not None and self.include_background:
-                            self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
-                elif self.data_plot_option == 'data+ratio':
-                    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-                    self.canvas.figure = fig
-                    self.ax = [ax1, ax2]
-
-                    for i in range(AllData.nSpectra):
-                        ax1.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-                        ax2.errorbar(self.xs[i], self.ratios[i], yerr=self.ratio_errors[i], fmt='.', label=f'Ratio {i+1}', color=SPECTRUM_COLORS[i])
-                elif self.data_plot_option == 'eufspec+delchi':
-                    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-                    self.canvas.figure = fig
-                    self.ax = [ax1, ax2]
-
-                    for i in range(AllData.nSpectra):
-                        ax1.errorbar(self.unf_xs[i], self.unf_ys[i], xerr=self.unf_xerrs[i], yerr=self.unf_yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
-                        ax2.errorbar(self.unf_xs[i], self.delchi[i], yerr=self.delchi_errors[i], fmt='.', label=f'Delchi {i+1}', color=SPECTRUM_COLORS[i])
-
+            if AllData.nSpectra >= 1:
+                for i in range(AllData.nSpectra):
+                    self.ax.errorbar(self.xs[i], self.ys[i], xerr=self.xerrs[i], yerr=self.yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
+                    if self.backs[i] is not None and self.include_background:
+                        self.ax.scatter(self.xs[i], self.backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
+            
             # Determine color normalization based on spacing
             if spacing == "linear":
                 norm = mcolors.Normalize(vmin=param_min, vmax=param_max)
@@ -1030,6 +1042,13 @@ class MainWindow(QMainWindow):
         """
         if not hasattr(self, 'data_plot_option'):
             self.data_plot_option = 'data'
+
+        if isinstance(self.ax, list):
+            x_limit = self.ax[0].get_xlim()
+            y_limit = self.ax[0].get_ylim()
+        else:
+            x_limit = self.ax.get_xlim()
+            y_limit = self.ax.get_ylim()
 
         # Ensure plot configuration includes background
         Plot.background = self.include_background  # Set background plot visibility
@@ -1136,7 +1155,7 @@ class MainWindow(QMainWindow):
                 ax1.set_xscale('log')  # Set x-axis to logarithmic scale
                 ax1.set_yscale('log')  # Set y-axis to logarithmic scale
                 ax1.set_xlabel('Energy (keV)')  # Label x-axis
-                ax1.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')  # Label y-axis
+                ax1.set_ylabel('keV (Photons s$^{-1}$ keV$^{-1}$ cm$^{-2})$')  # Label y-axis
                 ax1.legend()  # Add legend to plot
                 ax1.set_title("Plot of eufspec")  # Set plot title
 
@@ -1148,10 +1167,10 @@ class MainWindow(QMainWindow):
         if isinstance(self.ax, list):
             ax1, ax2 = tuple(self.ax)
             if hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected:
-                ax1.set_xlim(self.ax1.get_xlim())
-                ax1.set_ylim(self.ax1.get_ylim())
-                ax2.set_xlim(self.ax2.get_xlim())
-                ax2.set_ylim(self.ax2.get_ylim())
+                ax1.set_xlim(x_limit)
+                ax1.set_ylim(y_limit)
+                ax2.set_xlim(x_limit)
+                ax2.set_ylim(y_limit)
             else:
                 ax1.relim()
                 ax1.autoscale_view()
@@ -1159,8 +1178,8 @@ class MainWindow(QMainWindow):
                 ax2.autoscale_view()
         else:
             if hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected:
-                self.ax.set_xlim(self.ax.get_xlim())
-                self.ax.set_ylim(self.ax.get_ylim())
+                self.ax.set_xlim(x_limit)
+                self.ax.set_ylim(y_limit)
             else:
                 self.ax.relim()
                 self.ax.autoscale_view()
