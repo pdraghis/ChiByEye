@@ -91,30 +91,51 @@ class MainWindow(QMainWindow):
         file_menu.addAction(restart_action)  # Add new action
         file_menu.addAction(exit_action)
 
-        # Add 'View' menu
+       # Add 'View' menu
         view_menu = menubar.addMenu('View')
         freeze_axes_action = QAction('Freeze Axes', self, checkable=True)
         use_textboxes_action = QAction('Use Textboxes for Parameters', self, checkable=True)
-        include_background_action = QAction('Include Background For Data', self, checkable=True)
         set_axes_limits_action = QAction('Set Axes Limits', self)
-        plot_components_action = QAction('Plot Different Components', self, checkable=True)
-        select_plot_action = QAction('Select What to Plot', self)
-        plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
         show_frozen_action = QAction('Show Frozen Parameters', self, checkable=True)  # New action
-        plot_data_action = QAction('Plot Data', self)  # New action
+
         view_menu.addAction(freeze_axes_action)
         view_menu.addAction(use_textboxes_action)
-        view_menu.addAction(include_background_action)
         view_menu.addAction(set_axes_limits_action)
-        view_menu.addAction(plot_components_action)
-        view_menu.addAction(select_plot_action)
-        view_menu.addAction(plot_n_times_action)  # Add new action
         view_menu.addAction(show_frozen_action)  # Add new action
-        view_menu.addAction(plot_data_action)  # Add new action
+
+        # Connect actions to their respective methods
+        freeze_axes_action.triggered.connect(lambda: self.toggle_option('Freeze Axes'))
+        use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Textboxes for Parameters'))
         set_axes_limits_action.triggered.connect(self.set_axes_limits)
-        plot_n_times_action.triggered.connect(self.plot_same_curve_n_times)  # Connect new action
         show_frozen_action.triggered.connect(lambda: self.toggle_option('Show Frozen Parameters'))  # Connect new action
-        plot_data_action.triggered.connect(self.open_plot_data_dialog)  # Connect new action
+
+        # Add 'Plot' menu
+        plot_menu = menubar.addMenu('Plot')
+
+        # Add actions to the 'Plot' menu
+        plot_components_action = QAction('Plot Different Components', self, checkable=True)
+        select_plot_action = QAction('Plot Model', self)
+        plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
+        plot_data_action = QAction('Plot Data', self)  # New action
+        include_background_action = QAction('Include Background For Data', self, checkable=True)
+        # Add 'Perform Fit' action to the 'Plot' menu
+        perform_fit_action = QAction('Perform Fit', self)
+        plot_menu.addAction(perform_fit_action)
+
+        plot_menu.addAction(plot_components_action)
+        plot_menu.addAction(select_plot_action)
+        plot_menu.addAction(plot_n_times_action)
+        plot_menu.addAction(plot_data_action)
+        plot_menu.addAction(include_background_action)
+
+        # Connect actions to their respective methods
+        plot_components_action.triggered.connect(lambda: self.toggle_option('Plot Different Components'))
+        select_plot_action.triggered.connect(self.open_select_plot_dialog)
+        plot_n_times_action.triggered.connect(self.plot_same_curve_n_times)
+        plot_data_action.triggered.connect(self.open_plot_data_dialog)
+        include_background_action.triggered.connect(lambda: self.toggle_option('Include Background'))
+        # Connect the action to the perform_fit method
+        perform_fit_action.triggered.connect(self.perform_fit)
 
         # Connect actions to methods (placeholders)
         load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  # Updated connection
@@ -1058,6 +1079,9 @@ class MainWindow(QMainWindow):
             delchi.append(np.array(Plot.y(plotGroup=i+1)))
             delchi_errors.append(np.array(Plot.yErr(plotGroup=i+1)))
 
+
+        Plot('ldata')
+        chisq = str(round(Fit.statistic,2))+'/'+str(Fit.dof)
         # Create a new figure and axis
         self.canvas.figure.clear()
         self.ax = self.canvas.figure.add_subplot(111)
@@ -1084,6 +1108,7 @@ class MainWindow(QMainWindow):
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             self.canvas.figure = fig
             self.ax = [ax1, ax2]
+            ax2.axhline(y=1, c='lime', lw=2, zorder=-100)
 
             for i in range(AllData.nSpectra):
                 ax1.errorbar(xs[i], ys[i], xerr=xerrs[i], yerr=yerrs[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
@@ -1100,13 +1125,13 @@ class MainWindow(QMainWindow):
                 ax2.errorbar(xs[i], ratios[i], xerr = xerrs[i], yerr=ratio_errors[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
                 ax2.set_xlabel('Energy (keV)')  # Label x-axis
                 ax2.set_ylabel('Ratio')  # Label y-axis
-                ax2.legend()  # Add legend to plot
-                ax2.set_title(f"Plot of ratio")  # Set plot title
+                ax2.set_title(r'$\chi^2/\nu='+ chisq + '$')  # Set plot title
 
         elif self.data_plot_option == 'eufspec+delchi':
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             self.canvas.figure = fig
             self.ax = [ax1, ax2]
+            ax2.axhline(y=0, c='lime', lw=2, zorder=-100)
 
             for i in range(AllData.nSpectra):
 
@@ -1119,13 +1144,12 @@ class MainWindow(QMainWindow):
                 ax1.set_xlabel('Energy (keV)')  # Label x-axis
                 ax1.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')  # Label y-axis
                 ax1.legend()  # Add legend to plot
-                ax1.set_title(f"Plot of eufspec")  # Set plot title
+                ax1.set_title("Plot of eufspec")  # Set plot title
 
                 ax2.errorbar(unf_xs[i], delchi[i], yerr=delchi_errors[i], fmt='.', label=f'Spectrum {i+1}', color=SPECTRUM_COLORS[i])
                 ax2.set_xlabel('Energy (keV)')  # Label x-axis
                 ax2.set_ylabel('Delchi')  # Label y-axis
-                ax2.legend()  # Add legend to plot
-                ax2.set_title(f"Plot of delchi")  # Set plot title
+                ax2.set_title("Plot of delchi")  # Set plot title
 
         if isinstance(self.ax, list):
             ax1, ax2 = tuple(self.ax)
@@ -1175,6 +1199,17 @@ class MainWindow(QMainWindow):
                 self.update_plot()  # Redraw the plot with the new style
             except Exception as e:
                 QMessageBox.warning(self, "Load Plot Style", f"Failed to load plot style: {str(e)}")
+
+    def perform_fit(self):
+        """
+        Perform the fit using XSPEC's Fit.perform() and update the plot.
+        """
+        try:
+            Fit.perform()  # Perform the fit
+            QMessageBox.information(self, "Fit Performed", "The fit has been successfully performed.")
+            self.plot_data()  # Update the plot with the new fit results
+        except Exception as e:
+            QMessageBox.warning(self, "Fit Error", f"An error occurred while performing the fit: {str(e)}")
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
