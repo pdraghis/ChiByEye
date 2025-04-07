@@ -55,6 +55,9 @@ DEFAULT_CURVE_COUNT = 10
 Plot.area = True
 Plot.setRebin(10, 10, -1)
 
+# continue fit without interrupting
+Fit.query = "yes"
+
 class MainWindow(QMainWindow):
     """
     MainWindow class provides a GUI for interacting with XSPEC models.
