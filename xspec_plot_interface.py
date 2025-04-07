@@ -149,12 +149,6 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         restart_action.triggered.connect(self.restart_application)  # Connect new action
 
-        freeze_axes_action.triggered.connect(lambda: self.toggle_option('Freeze Axes'))
-        use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Textboxes for Parameters'))
-        include_background_action.triggered.connect(lambda: self.toggle_option('Include Background'))
-        plot_components_action.triggered.connect(lambda: self.toggle_option('Plot Different Components'))
-        select_plot_action.triggered.connect(self.open_select_plot_dialog)
-
         # Initialize layout components
         main_layout = QHBoxLayout()
         left_panel = QVBoxLayout()
@@ -483,7 +477,6 @@ class MainWindow(QMainWindow):
             self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
         elif self.what_to_plot == "eemodel":
             self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
-        self.ax.set_title(f"Plot of {self.model_name} {self.what_to_plot}")
         self.ax.set_xscale('log')
         self.ax.set_yscale('log')
 
@@ -837,8 +830,8 @@ class MainWindow(QMainWindow):
         model_label = QLabel("Select model:")
         model_combo = QComboBox()
         model_combo.addItems([model.name for model in self.models])
-        layout.addWidget(model_label)
-        layout.addWidget(model_combo)
+        # layout.addWidget(model_label)
+        # layout.addWidget(model_combo)
 
         # Dropdown for selecting parameter
         param_label = QLabel("Select parameter:")
@@ -977,7 +970,6 @@ class MainWindow(QMainWindow):
                 self.ax.set_ylabel(r"$\rm keV\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
             elif self.what_to_plot == "eemodel":
                 self.ax.set_ylabel(r"$\rm keV^2\;(\rm Photons\;cm^{-2}\;s^{-1}\;keV^{-1})$")
-            self.ax.set_title(f'Repeated Plot of {selected_model.name}')
             self.ax.set_xscale('log')
             self.ax.set_yscale('log')
             self.ax.legend()
@@ -1101,7 +1093,6 @@ class MainWindow(QMainWindow):
                 self.ax.set_xlabel('Energy (keV)')  # Label x-axis
                 self.ax.set_ylabel('Counts s$^{-1}$ keV$^{-1}$ cm$^{-2}$')  # Label y-axis
                 self.ax.legend()  # Add legend to plot
-                self.ax.set_title(f"Plot of {self.data_plot_option}")  # Set plot title
 
                 if backs[i] is not None and self.include_background:
                     self.ax.scatter(xs[i], backs[i], marker='*', label=f'Background {i+1}', color=SPECTRUM_COLORS[i])
