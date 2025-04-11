@@ -122,8 +122,8 @@ class MainWindow(QMainWindow):
         plot_data_action = QAction('Plot Data', self)  # New action
         include_background_action = QAction('Include Background For Data', self, checkable=True)
         # Add 'Perform Fit' action to the 'Plot' menu
-        perform_fit_action = QAction('Perform Fit', self)
-        plot_menu.addAction(perform_fit_action)
+        # perform_fit_action = QAction('Perform Fit', self)
+        # plot_menu.addAction(perform_fit_action)
 
         plot_menu.addAction(plot_components_action)
         plot_menu.addAction(select_plot_action)
@@ -138,7 +138,7 @@ class MainWindow(QMainWindow):
         plot_data_action.triggered.connect(self.open_plot_data_dialog)
         include_background_action.triggered.connect(lambda: self.toggle_option('Include Background'))
         # Connect the action to the perform_fit method
-        perform_fit_action.triggered.connect(self.perform_fit)
+        # perform_fit_action.triggered.connect(self.perform_fit)
 
         # Connect actions to methods (placeholders)
         load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  # Updated connection
@@ -712,10 +712,8 @@ class MainWindow(QMainWindow):
                     ax2.set_xlim(right=float(x_max))
                 if y_min:
                     ax1.set_ylim(bottom=float(y_min))
-                    ax2.set_ylim(bottom=float(y_min))
                 if y_max:
                     ax1.set_ylim(top=float(y_max))
-                    ax2.set_ylim(top=float(y_max))
             else:
                 if x_min:
                     self.ax.set_xlim(left=float(x_min))
@@ -729,7 +727,6 @@ class MainWindow(QMainWindow):
             dialog.accept()
             self.freeze_axes_selected = True
             AllModels.setEnergies(f'{x_min} {x_max} 1000 log')
-            self.update_plot()  # Redraw the plot with the new axes limits
         except ValueError:
             QMessageBox.warning(self, 'Invalid Input', 'Please enter valid numbers for the axes limits.')
 
@@ -1164,6 +1161,7 @@ class MainWindow(QMainWindow):
                 ax2.set_ylabel('Delchi')  # Label y-axis
                 ax2.set_title("Plot of delchi")  # Set plot title
 
+
         if isinstance(self.ax, list):
             ax1, ax2 = tuple(self.ax)
             if hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected:
@@ -1171,7 +1169,9 @@ class MainWindow(QMainWindow):
                 ax1.set_ylim(y_limit)
                 ax2.set_xlim(x_limit)
                 ax2.set_ylim(y_limit)
-            else:
+            elif self.rescale_checkbox.isChecked():
+                self.rescale_plot()
+            else:    
                 ax1.relim()
                 ax1.autoscale_view()
                 ax2.relim()
@@ -1180,9 +1180,18 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'freeze_axes_selected') and self.freeze_axes_selected:
                 self.ax.set_xlim(x_limit)
                 self.ax.set_ylim(y_limit)
+            elif self.rescale_checkbox.isChecked():
+                self.rescale_plot()
             else:
                 self.ax.relim()
                 self.ax.autoscale_view()
+
+        
+
+        self.xs = xs
+        self.ys = ys
+        self.xerrs = xerrs
+        self.yerrs = yerrs
 
         self.canvas.draw()
 
