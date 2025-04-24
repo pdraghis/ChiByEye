@@ -30,6 +30,8 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from xspec import *
 import os
+from PyQt5.QtCore import Qt, QCoreApplication, QProcess, QTimer, QThread, pyqtSignal, QObject
+import threading  # Only if you use threading elsewhere
 
 # Define a list of colors for plotting spectra
 SPECTRUM_COLORS = ['black', 'red', 'lime', 'blue', 'cyan', 'magenta', 'yellow', 'orange']
@@ -57,6 +59,35 @@ Plot.setRebin(10, 10, -1)
 
 # continue fit without interrupting
 Fit.query = "yes"
+
+class FitWorker(QObject):
+    finished = pyqtSignal(object)  # emits exception or None
+    def __init__(self, stop_event=None):
+        super().__init__()
+        self.stop_event = stop_event or threading.Event()
+        self.exception = None
+
+    def run(self):
+        try:
+            Fit.perform()
+        except Exception as e:
+            self.exception = e
+        self.finished.emit(self.exception)
+
+class FitDialog(QDialog):
+    def __init__(self, stop_callback, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Fitting in Progress")
+        self.setModal(True)
+        self.setFixedSize(300, 120)
+        layout = QVBoxLayout()
+        label = QLabel("XSPEC is performing the fit...\nYou may stop the fit at any time.")
+        label.setWordWrap(True)
+        layout.addWidget(label)
+        self.stop_button = QPushButton("Stop Fit")
+        self.stop_button.clicked.connect(stop_callback)
+        layout.addWidget(self.stop_button)
+        self.setLayout(layout)
 
 class MainWindow(QMainWindow):
     """
@@ -122,8 +153,8 @@ class MainWindow(QMainWindow):
         plot_data_action = QAction('Plot Data', self)  # New action
         include_background_action = QAction('Include Background For Data', self, checkable=True)
         # Add 'Perform Fit' action to the 'Plot' menu
-        # perform_fit_action = QAction('Perform Fit', self)
-        # plot_menu.addAction(perform_fit_action)
+        perform_fit_action = QAction('Perform Fit', self)
+        plot_menu.addAction(perform_fit_action)
 
         plot_menu.addAction(plot_components_action)
         plot_menu.addAction(select_plot_action)
@@ -138,7 +169,7 @@ class MainWindow(QMainWindow):
         plot_data_action.triggered.connect(self.open_plot_data_dialog)
         include_background_action.triggered.connect(lambda: self.toggle_option('Include Background'))
         # Connect the action to the perform_fit method
-        # perform_fit_action.triggered.connect(self.perform_fit)
+        perform_fit_action.triggered.connect(self.perform_fit_threaded)
 
         # Connect actions to methods (placeholders)
         load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  # Updated connection
@@ -1222,16 +1253,39 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.warning(self, "Load Plot Style", f"Failed to load plot style: {str(e)}")
 
-    def perform_fit(self):
+    def perform_fit_threaded(self):
         """
-        Perform the fit using XSPEC's Fit.perform() and update the plot.
+        Runs the fit in a QThread and shows a dialog with a stop button.
         """
-        try:
-            Fit.perform()  # Perform the fit
+        self.fit_stop_event = threading.Event()
+        self.fit_thread = QThread()
+        self.fit_worker = FitWorker(stop_event=self.fit_stop_event)
+        self.fit_worker.moveToThread(self.fit_thread)
+        self.fit_thread.started.connect(self.fit_worker.run)
+        self.fit_worker.finished.connect(self.fit_finished)
+        self.fit_worker.finished.connect(self.fit_thread.quit)
+        self.fit_worker.finished.connect(self.fit_worker.deleteLater)
+        self.fit_thread.finished.connect(self.fit_thread.deleteLater)
+        self.fit_dialog = FitDialog(stop_callback=self.stop_fit, parent=self)
+        self.fit_thread.start()
+        self.fit_dialog.show()
+
+    def stop_fit(self):
+        # Set the event to signal the thread to stop
+        if hasattr(self, 'fit_stop_event'):
+            self.fit_stop_event.set()
+        if hasattr(self, 'fit_dialog'):
+            self.fit_dialog.close()
+        QMessageBox.information(self, "Fit Stopped", "The fit was stopped by the user.")
+
+    def fit_finished(self, exception):
+        if hasattr(self, 'fit_dialog'):
+            self.fit_dialog.close()
+        if exception is None:
             QMessageBox.information(self, "Fit Performed", "The fit has been successfully performed.")
             self.plot_data()  # Update the plot with the new fit results
-        except Exception as e:
-            QMessageBox.warning(self, "Fit Error", f"An error occurred while performing the fit: {str(e)}")
+        else:
+            QMessageBox.warning(self, "Fit Error", f"An error occurred while performing the fit: {str(exception)}")
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
