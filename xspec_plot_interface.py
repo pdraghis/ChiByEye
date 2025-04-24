@@ -538,7 +538,12 @@ class MainWindow(QMainWindow):
             self.rescale_plot()
 
         # Refresh canvas
+        self.canvas.figure.tight_layout()
         self.canvas.draw()
+        self.canvas.updateGeometry()
+        # Optionally, force resize if needed:
+        # if self.canvas.parent() is not None:
+        #     self.canvas.resize(self.canvas.parent().size())
 
     def save_plot(self):
         """
@@ -754,7 +759,12 @@ class MainWindow(QMainWindow):
                     self.ax.set_ylim(bottom=float(y_min))
                 if y_max:
                     self.ax.set_ylim(top=float(y_max))
+            self.canvas.figure.tight_layout()
             self.canvas.draw()
+            self.canvas.updateGeometry()
+            # Optionally, force resize if needed:
+            # if self.canvas.parent() is not None:
+            #     self.canvas.resize(self.canvas.parent().size())
             dialog.accept()
             self.freeze_axes_selected = True
             AllModels.setEnergies(f'{x_min} {x_max} 1000 log')
@@ -839,7 +849,12 @@ class MainWindow(QMainWindow):
             self.ax.autoscale_view()
 
         # Refresh canvas
+        self.canvas.figure.tight_layout()
         self.canvas.draw()
+        self.canvas.updateGeometry()
+        # Optionally, force resize if needed:
+        # if self.canvas.parent() is not None:
+        #     self.canvas.resize(self.canvas.parent().size())
 
     def open_select_plot_dialog(self):
         """
@@ -1015,9 +1030,14 @@ class MainWindow(QMainWindow):
             self.ax.legend()
 
             # Refresh canvas
-            self.canvas.draw()
+            self.canvas.figure.tight_layout()
+        self.canvas.draw()
+        self.canvas.updateGeometry()
+        # Optionally, force resize if needed:
+        # if self.canvas.parent() is not None:
+        #     self.canvas.resize(self.canvas.parent().size())
 
-            dialog.accept()
+        dialog.accept()
 
         button_box.accepted.connect(on_accept)
         button_box.rejected.connect(dialog.reject)
@@ -1147,7 +1167,13 @@ class MainWindow(QMainWindow):
 
         elif self.data_plot_option == 'data+ratio':
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-            self.canvas.figure = fig
+            # Replace the canvas with a new FigureCanvas
+            new_canvas = FigureCanvas(fig)
+            layout = self.centralWidget().layout()
+            layout.removeWidget(self.canvas)
+            self.canvas.setParent(None)
+            self.canvas = new_canvas
+            layout.addWidget(self.canvas, stretch=3)
             self.ax = [ax1, ax2]
             ax2.axhline(y=1, c='lime', lw=2, zorder=-100)
 
@@ -1170,7 +1196,13 @@ class MainWindow(QMainWindow):
 
         elif self.data_plot_option == 'eufspec+delchi':
             fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
-            self.canvas.figure = fig
+            # Replace the canvas with a new FigureCanvas
+            new_canvas = FigureCanvas(fig)
+            layout = self.centralWidget().layout()
+            layout.removeWidget(self.canvas)
+            self.canvas.setParent(None)
+            self.canvas = new_canvas
+            layout.addWidget(self.canvas, stretch=3)
             self.ax = [ax1, ax2]
             ax2.axhline(y=0, c='lime', lw=2, zorder=-100)
 
@@ -1224,7 +1256,12 @@ class MainWindow(QMainWindow):
         self.xerrs = xerrs
         self.yerrs = yerrs
 
+        self.canvas.figure.tight_layout()
         self.canvas.draw()
+        self.canvas.updateGeometry()
+        # Optionally, force resize if needed:
+        # if self.canvas.parent() is not None:
+        #     self.canvas.resize(self.canvas.parent().size())
 
     def rescale_plot(self):
         """
@@ -1237,7 +1274,12 @@ class MainWindow(QMainWindow):
         y_data = [line.get_ydata() for line in ax.get_lines()]
         max_y = max([max(y) for y in y_data if len(y) > 0])
         ax.set_ylim(PLOT_Y_MIN_FACTOR * max_y, PLOT_Y_MAX_FACTOR * max_y)
+        self.canvas.figure.tight_layout()
         self.canvas.draw()
+        self.canvas.updateGeometry()
+        # Optionally, force resize if needed:
+        # if self.canvas.parent() is not None:
+        #     self.canvas.resize(self.canvas.parent().size())
 
     def load_plot_style(self):
         """
