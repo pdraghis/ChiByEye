@@ -1,0 +1,142 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{titlesec}
+
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{ChiByEye}
+\lhead{User Documentation}
+\rfoot{\thepage}
+
+\title{\textbf{ChiByEye: An Interactive XSPEC Model Visualizer}}
+\author{Paulo Silva \& Paul Draghis}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Overview}
+
+\textbf{ChiByEye} is an interactive graphical interface built with PyQt5 and Matplotlib that allows users to explore how XSPEC model parameters affect the resulting spectral shape. It provides dynamic visualization, easy model loading, parameter manipulation through sliders or textboxes, and integrated data fitting.
+
+This tool is ideal for astrophysics researchers or students looking to understand model behavior or inspect XSPEC fitting results without manually entering commands in the XSPEC terminal.
+
+\section*{Requirements}
+
+\begin{itemize}
+    \item Python 3.x
+    \item \textbf{XSPEC} and the \texttt{pyxspec} Python bindings (part of HEASoft)
+    \item Python packages:
+    \begin{itemize}
+        \item \texttt{numpy}
+        \item \texttt{matplotlib}
+        \item \texttt{PyQt5}
+    \end{itemize}
+\end{itemize}
+
+\noindent
+Additionally, the code attempts to load the \texttt{relxill} model on startup. If your system does not have \texttt{relxill} installed, comment out \texttt{AllModels.lmod('relxill')} (line 38).
+
+\section*{Launching the Interface}
+
+After installing the dependencies and verifying XSPEC is properly configured, run the software with:
+
+\begin{lstlisting}[language=bash]
+python xspec_plot_interface.py
+\end{lstlisting}
+
+\section*{Main Interface}
+
+Upon launching, the main window will appear with an empty plot and a prompt to type in a model name (e.g., \texttt{powerlaw}, \texttt{diskbb}, etc.). The interface provides several options to load models and data:
+
+\begin{itemize}
+    \item \textbf{Manual model entry:} Type the model expression and press \texttt{Enter}.
+    \item \textbf{File $\rightarrow$ Load Model as XCM:} Load a model from an existing \texttt{.xcm} file.
+    \item \textbf{File $\rightarrow$ Load Data as XCM:} Load both spectra and model from an XSPEC session file.
+\end{itemize}
+
+\noindent
+An example XCM file (\texttt{test\_file.xcm}) is provided to demonstrate functionality.
+
+\section*{View Menu Options}
+
+\begin{itemize}
+    \item \textbf{Use Textboxes for Parameters:} Toggles between sliders and textboxes for editing model parameters.
+    \item \textbf{Set Axes Limits:} Manually define x and y-axis limits for the plot.
+    \item \textbf{Freeze Axes:} Lock current axis limits for consistent comparison between plots.
+    \item \textbf{Show Frozen Parameters:} Display parameters that are frozen in XSPEC.
+\end{itemize}
+
+\section*{Buttons and Controls}
+
+\begin{itemize}
+    \item \textbf{Generate Plot:} Refresh the model plot using the current parameters.
+    \item \textbf{Rescale Plot (Checkbox):} Rescales the y-axis to focus on relevant data. Useful when plotted values become too small in log space (e.g., $10^{-\infty}$).
+\end{itemize}
+
+\section*{Plot Menu Features}
+
+\begin{itemize}
+    \item \textbf{Plot Different Components:} Visualize each additive component of a model individually (e.g., diskbb + powerlaw).
+    \item \textbf{Plot Model:} Select XSPEC plot styles: \texttt{model}, \texttt{emodel}, \texttt{eemodel}.
+    \item \textbf{Plot Data:} Choose from data-only, data+ratio, or unfolded spectrum + delchi representations.
+    \item \textbf{Plot Same Curve N Times:} Sweep a parameter across multiple values and show the resulting curves using a color map.
+\end{itemize}
+
+\noindent
+\textit{Note:} When switching data plot modes, the new plot may initially appear smaller or misaligned. Resizing the window resolves the issue.
+
+\section*{Saving and Exporting}
+
+\begin{itemize}
+    \item \textbf{File $\rightarrow$ Save Parameters as XCM:} Export the current model setup.
+    \item \textbf{File $\rightarrow$ Save Plot:} Save the currently displayed plot to a PNG file.
+    \item \textbf{File $\rightarrow$ Load Plot Style File:} Import a custom \texttt{.mplstyle} configuration for plot styling.
+\end{itemize}
+
+\section*{Additional Notes}
+
+\begin{itemize}
+    \item The software currently supports fitting loaded data via the \textbf{Perform Fit} option in the Plot menu.
+    \item Default XSPEC fit settings are used unless otherwise modified.
+    \item All parameter updates are immediately reflected in the XSPEC backend.
+\end{itemize}
+
+\section*{Future Work}
+
+We are actively developing new features, including:
+\begin{itemize}
+    \item A fitting assistant for user-guided $\chi^2$ minimization (\textit{hence the name -- ChiByEye}).
+    \item Advanced residual diagnostics.
+    \item Support for time-resolved and multi-spectral fits.
+\end{itemize}
+
+\section*{Feedback and Contributions}
+
+If you encounter bugs, want to suggest new features, or simply have feedback about usability, we would love to hear from you!  
+This is an early-release version of \textbf{ChiByEye}, and we appreciate any help in improving it.
+
+\section*{Acknowledgments}
+
+This project was developed by:
+
+\begin{itemize}
+    \item \textbf{Paulo Silva} – Massachusetts Institute of Technology
+    \item \textbf{Paul Draghis} – Massachusetts Institute of Technology
+\end{itemize}
+
+\bigskip
+
+\noindent We acknowledge the developers of XSPEC and the creators of the relxill models for making this work possible.
+
+\end{document}

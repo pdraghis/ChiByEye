@@ -1,0 +1,2 @@
+# Ignore embedded git repo from cache
+node_modules/.cache/gh-pages/https!github.com!PauloHS-Silva!ChyByEye.git/
