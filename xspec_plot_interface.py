@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import time
 from PyQt5.QtWidgets import (
     QApplication,  # Creates the GUI application
     QMainWindow,  # Creates the main window
@@ -61,17 +62,25 @@ Plot.setRebin(10, 10, -1)
 Fit.query = "yes"
 
 class FitWorker(QObject):
+    # Worker object to perform the fit in a separate thread.
+    # Emits 'finished' signal with an exception (if any) when done.
     finished = pyqtSignal(object)  # emits exception or None
+
     def __init__(self, stop_event=None):
         super().__init__()
+        # Event used to signal when the fit should be stopped
         self.stop_event = stop_event or threading.Event()
         self.exception = None
 
     def run(self):
+        # This method is executed in the worker thread.
+        # It performs the fit and handles exceptions.
         try:
-            Fit.perform()
+            time.sleep(5)
+            Fit.perform()  # Replace with actual fitting logic, check self.stop_event periodically if possible
         except Exception as e:
             self.exception = e
+        # Emit the finished signal with the exception (or None if successful)
         self.finished.emit(self.exception)
 
 class FitDialog(QDialog):
@@ -152,15 +161,21 @@ class MainWindow(QMainWindow):
         plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
         plot_data_action = QAction('Plot Data', self)  # New action
         include_background_action = QAction('Include Background For Data', self, checkable=True)
-        # Add 'Perform Fit' action to the 'Plot' menu
-        perform_fit_action = QAction('Perform Fit', self)
-        plot_menu.addAction(perform_fit_action)
-
         plot_menu.addAction(plot_components_action)
         plot_menu.addAction(select_plot_action)
         plot_menu.addAction(plot_n_times_action)
         plot_menu.addAction(plot_data_action)
         plot_menu.addAction(include_background_action)
+
+        # Add 'Fit' menu and add 'Perform Fit' action there
+        fit_menu = menubar.addMenu('Fit')
+        perform_fit_action = QAction('Perform Fit', self)
+        fit_menu.addAction(perform_fit_action)
+
+        # Add 'Set Number of CPUs' action to the Fit menu
+        set_cpus_action = QAction('Set Number of CPUs', self)
+        fit_menu.addAction(set_cpus_action)
+        set_cpus_action.triggered.connect(self.open_set_cpus_dialog)
 
         # Connect actions to their respective methods
         plot_components_action.triggered.connect(lambda: self.toggle_option('Plot Different Components'))
@@ -1297,37 +1312,67 @@ class MainWindow(QMainWindow):
 
     def perform_fit_threaded(self):
         """
-        Runs the fit in a QThread and shows a dialog with a stop button.
+        Starts the fitting process in a separate thread using QThread and FitWorker.
+        This prevents the GUI from freezing during long-running fits and allows the user to stop the fit.
+        Shows a modal dialog with a stop button while the fit is running.
         """
+        # Create an event to signal the worker to stop if requested
         self.fit_stop_event = threading.Event()
+        # Create a new QThread instance
         self.fit_thread = QThread()
+        # Create the worker that will perform the fit, passing the stop event
         self.fit_worker = FitWorker(stop_event=self.fit_stop_event)
+        # Move the worker to the thread (so its run method executes in the new thread)
         self.fit_worker.moveToThread(self.fit_thread)
+        # When the thread starts, call the worker's run method
         self.fit_thread.started.connect(self.fit_worker.run)
+        # When the worker finishes, handle results and clean up
         self.fit_worker.finished.connect(self.fit_finished)
         self.fit_worker.finished.connect(self.fit_thread.quit)
         self.fit_worker.finished.connect(self.fit_worker.deleteLater)
         self.fit_thread.finished.connect(self.fit_thread.deleteLater)
+        # Create and show a dialog to allow the user to stop the fit
         self.fit_dialog = FitDialog(stop_callback=self.stop_fit, parent=self)
+        # Start the fit thread
         self.fit_thread.start()
         self.fit_dialog.show()
 
     def stop_fit(self):
-        # Set the event to signal the thread to stop
+        # Called when the user clicks the stop button in the dialog.
+        # Signals the worker thread to stop by setting the event.
         if hasattr(self, 'fit_stop_event'):
             self.fit_stop_event.set()
+        # Close the dialog window
         if hasattr(self, 'fit_dialog'):
             self.fit_dialog.close()
+        # Inform the user that the fit was stopped
         QMessageBox.information(self, "Fit Stopped", "The fit was stopped by the user.")
 
     def fit_finished(self, exception):
+        # Called when the worker signals that the fit is finished (success or failure).
+        # Ensures the dialog is closed and handles the result or any exception.
         if hasattr(self, 'fit_dialog'):
             self.fit_dialog.close()
         if exception is None:
+            # Fit completed successfully
             QMessageBox.information(self, "Fit Performed", "The fit has been successfully performed.")
             self.plot_data()  # Update the plot with the new fit results
         else:
+            # An error occurred during fitting
             QMessageBox.warning(self, "Fit Error", f"An error occurred while performing the fit: {str(exception)}")
+
+    def open_set_cpus_dialog(self):
+        """
+        Open a dialog allowing the user to select the number of CPUs for parallel fitting.
+        Sets Xset.parallel.leven accordingly.
+        """
+        from PyQt5.QtWidgets import QInputDialog
+        # Get current value if available, else default to 1
+        current_cpus = getattr(Xset.parallel, 'leven', 1)
+        num, ok = QInputDialog.getInt(self, "Set Number of CPUs", "Number of CPUs to use for parallel fitting:", value=current_cpus, min=1, max=64)
+        if ok:
+            Xset.parallel.leven = num
+            QMessageBox.information(self, "Set Number of CPUs", f"XSPEC will now use {num} CPU(s) for parallel fitting.")
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
