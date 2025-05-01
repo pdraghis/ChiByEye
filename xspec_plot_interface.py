@@ -1342,6 +1342,8 @@ class MainWindow(QMainWindow):
         # Signals the worker thread to stop by setting the event.
         if hasattr(self, 'fit_stop_event'):
             self.fit_stop_event.set()
+        # Set a flag to indicate the fit was stopped by the user
+        self.fit_was_stopped = True
         # Close the dialog window
         if hasattr(self, 'fit_dialog'):
             self.fit_dialog.close()
@@ -1353,6 +1355,10 @@ class MainWindow(QMainWindow):
         # Ensures the dialog is closed and handles the result or any exception.
         if hasattr(self, 'fit_dialog'):
             self.fit_dialog.close()
+        # Only update the plot if the fit was not stopped by the user
+        if getattr(self, 'fit_was_stopped', False):
+            self.fit_was_stopped = False  # Reset for next fit
+            return
         if exception is None:
             # Fit completed successfully
             QMessageBox.information(self, "Fit Performed", "The fit has been successfully performed.")
