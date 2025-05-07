@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 from xspec import *
 import os
 from PyQt5.QtCore import Qt, QCoreApplication, QProcess, QTimer, QThread, pyqtSignal, QObject
-import threading  # Only if you use threading elsewhere
+import threading
 
 # Define a list of colors for plotting spectra
 SPECTRUM_COLORS = ['black', 'red', 'lime', 'blue', 'cyan', 'magenta', 'yellow', 'orange']
@@ -354,7 +354,7 @@ class MainWindow(QMainWindow):
                                     
                                 label = QLabel(f"{param.name}: {param.values[0]:.3f}")
                                 textbox = QLineEdit(str(param.values[0]))
-                                textbox.editingFinished.connect(lambda tb=textbox, p=param: setattr(p, 'values', [float(tb.text())]))
+                                textbox.editingFinished.connect(lambda tb=textbox, p=param, l=label: (setattr(p, 'values', [float(tb.text())]), l.setText(f"{p.name}: {p.values[0]:.3f}")))
                                 left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
                                 left_panel.insertWidget(counter * 2, label)
                                 left_panel.insertWidget(counter * 2 + 1, textbox)
@@ -390,8 +390,10 @@ class MainWindow(QMainWindow):
             self.model_textbox.hide()
             # Show the rescale checkbox
             self.rescale_checkbox.show()
-            # Update the plot with the new model
-            self.update_plot(True)
+            if self.is_data_loaded:
+                self.plot_data()
+            else:
+                self.update_plot()            
 
         except Exception as e:
             # Display an error message if model loading fails
@@ -487,7 +489,6 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'models'):
                 self.load_model()
             self.update_plot()
-
 
     def update_plot(self, plot_model=False):
         """
