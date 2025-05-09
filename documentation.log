@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  24 APR 2025 10:21
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 MAY 2025 12:02
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**/Users/paulo/Desktop/UROP/ChyByEye/documentation.tex
-(/Users/paulo/Desktop/UROP/ChyByEye/documentation.tex
+**/Users/paulo/Desktop/ChiByEye/documentation.tex
+(/Users/paulo/Desktop/ChiByEye/documentation.tex
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
 (/usr/local/texlive/2025/texmf-dist/tex/latex/base/article.cls
@@ -324,31 +324,38 @@ Package: titlesec 2025/01/04 v2.17 Sectioning titles
 \titlewidth=\dimen180
 \titlewidthlast=\dimen181
 \titlewidthfirst=\dimen182
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/float/float.sty
+Package: float 2001/11/08 v1.3d Float enhancements (AL)
+\c@float@type=\count309
+\float@exts=\toks28
+\float@box=\box58
+\@float@everytoks=\toks29
+\@floatcapt=\box59
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count309
-\l__pdf_internal_box=\box58
+\l__color_backend_stack_int=\count310
+\l__pdf_internal_box=\box60
 ) (./documentation.aux)
 \openout1 = `documentation.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 26.
+LaTeX Font Info:    ... okay on input line 26.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -367,7 +374,7 @@ LaTeX Font Info:    ... okay on input line 24.
 * \oddsidemargin=0.0pt
 * \evensidemargin=0.0pt
 * \topmargin=-37.0pt
-* \headheight=12.0pt
+* \headheight=13.6pt
 * \headsep=25.0pt
 * \topskip=11.0pt
 * \footskip=30.0pt
@@ -386,58 +393,122 @@ LaTeX Font Info:    ... okay on input line 24.
 
 (/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count310
+\scratchcounter=\count311
 \scratchdimen=\dimen183
-\scratchbox=\box59
-\nofMPsegments=\count311
-\nofMParguments=\count312
-\everyMPshowfont=\toks28
-\MPscratchCnt=\count313
+\scratchbox=\box61
+\nofMPsegments=\count312
+\nofMParguments=\count313
+\everyMPshowfont=\toks30
+\MPscratchCnt=\count314
 \MPscratchDim=\dimen184
-\MPnumerator=\count314
-\makeMPintoPDFobject=\count315
-\everyMPtoPDFconversion=\toks29
+\MPnumerator=\count315
+\makeMPintoPDFobject=\count316
+\everyMPtoPDFconversion=\toks31
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-Package hyperref Info: Link coloring OFF on input line 24.
+Package hyperref Info: Link coloring OFF on input line 26.
  (./documentation.out) (./documentation.out)
 \@outlinefile=\write3
 \openout3 = `documentation.out'.
 
-\c@lstlisting=\count316
+\c@lstlisting=\count317
 Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: float package is loaded.
 Package caption Info: End \AtBeginDocument code.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2024/09/23 1.10c listings language file
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2024/09/23 1.10c listings language file
 )
+<documentation_images/initial_screen.png, id=4, 1517.67pt x 985.6825pt>
+File: documentation_images/initial_screen.png Graphic file (type png)
+<use documentation_images/initial_screen.png>
+Package pdftex.def Info: documentation_images/initial_screen.png  used on input line 64.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+
 
 [1
 
 {/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
+<documentation_images/plot_after_changing_sliders.png, id=19, 1517.67pt x 985.6825pt>
+File: documentation_images/plot_after_changing_sliders.png Graphic file (type png)
+<use documentation_images/plot_after_changing_sliders.png>
+Package pdftex.def Info: documentation_images/plot_after_changing_sliders.png  used on input line 77.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+<documentation_images/load_data_as_xcm.png, id=20, 1517.67pt x 985.6825pt>
+File: documentation_images/load_data_as_xcm.png Graphic file (type png)
+<use documentation_images/load_data_as_xcm.png>
+Package pdftex.def Info: documentation_images/load_data_as_xcm.png  used on input line 83.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
 
 
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
+[2 <./documentation_images/initial_screen.png> <./documentation_images/plot_after_changing_sliders.png>]
+<documentation_images/view_menu.png, id=30, 1517.67pt x 985.6825pt>
+File: documentation_images/view_menu.png Graphic file (type png)
+<use documentation_images/view_menu.png>
+Package pdftex.def Info: documentation_images/view_menu.png  used on input line 101.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+<documentation_images/textboxes.png, id=31, 1517.67pt x 985.6825pt>
+File: documentation_images/textboxes.png Graphic file (type png)
+<use documentation_images/textboxes.png>
+Package pdftex.def Info: documentation_images/textboxes.png  used on input line 107.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
 
-[2]
+
+[3 <./documentation_images/load_data_as_xcm.png> <./documentation_images/view_menu.png>]
+<documentation_images/set_axes_limits.png, id=40, 1517.67pt x 985.6825pt>
+File: documentation_images/set_axes_limits.png Graphic file (type png)
+<use documentation_images/set_axes_limits.png>
+Package pdftex.def Info: documentation_images/set_axes_limits.png  used on input line 113.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
 
 
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
+[4 <./documentation_images/textboxes.png> <./documentation_images/set_axes_limits.png>]
+<documentation_images/plot_menu.png, id=50, 1517.67pt x 985.6825pt>
+File: documentation_images/plot_menu.png Graphic file (type png)
+<use documentation_images/plot_menu.png>
+Package pdftex.def Info: documentation_images/plot_menu.png  used on input line 135.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+<documentation_images/plot_data-options.png, id=51, 1517.67pt x 985.6825pt>
+File: documentation_images/plot_data-options.png Graphic file (type png)
+<use documentation_images/plot_data-options.png>
+Package pdftex.def Info: documentation_images/plot_data-options.png  used on input line 141.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+<documentation_images/plot_data_data+ratio.png, id=52, 1517.67pt x 985.6825pt>
+File: documentation_images/plot_data_data+ratio.png Graphic file (type png)
+<use documentation_images/plot_data_data+ratio.png>
+Package pdftex.def Info: documentation_images/plot_data_data+ratio.png  used on input line 147.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
 
-[3] (./documentation.aux)
+
+[5 <./documentation_images/plot_menu.png> <./documentation_images/plot_data-options.png>]
+<documentation_images/plot_data_eufspec+delchi.png, id=61, 1517.67pt x 985.6825pt>
+File: documentation_images/plot_data_eufspec+delchi.png Graphic file (type png)
+<use documentation_images/plot_data_eufspec+delchi.png>
+Package pdftex.def Info: documentation_images/plot_data_eufspec+delchi.png  used on input line 153.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+<documentation_images/include_background.png, id=62, 1517.67pt x 985.6825pt>
+File: documentation_images/include_background.png Graphic file (type png)
+<use documentation_images/include_background.png>
+Package pdftex.def Info: documentation_images/include_background.png  used on input line 159.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+
+
+[6 <./documentation_images/plot_data_data+ratio.png> <./documentation_images/plot_data_eufspec+delchi.png>]
+<documentation_images/set_number_of_cpus_for_parallel_fitting.png, id=71, 1517.67pt x 985.6825pt>
+File: documentation_images/set_number_of_cpus_for_parallel_fitting.png Graphic file (type png)
+<use documentation_images/set_number_of_cpus_for_parallel_fitting.png>
+Package pdftex.def Info: documentation_images/set_number_of_cpus_for_parallel_fitting.png  used on input line 181.
+(pdftex.def)             Requested size: 317.07614pt x 205.93156pt.
+
+
+[7 <./documentation_images/include_background.png> <./documentation_images/set_number_of_cpus_for_parallel_fitting.png>]
+
+[8] (./documentation.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -446,18 +517,18 @@ Package rerunfilecheck Info: File `documentation.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 14104 strings out of 473190
- 219398 string characters out of 5715801
- 814254 words of memory out of 5000000
- 37211 multiletter control sequences out of 15000+600000
+ 14270 strings out of 473190
+ 224892 string characters out of 5715801
+ 812866 words of memory out of 5000000
+ 37356 multiletter control sequences out of 15000+600000
  565761 words of font info for 60 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,11n,79p,400b,1133s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,11n,79p,395b,1133s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on documentation.pdf (3 pages, 141582 bytes).
+Output written on documentation.pdf (8 pages, 3036153 bytes).
 PDF statistics:
- 79 PDF objects out of 1000 (max. 8388607)
- 51 compressed objects within 1 object stream
- 6 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 142 PDF objects out of 1000 (max. 8388607)
+ 85 compressed objects within 1 object stream
+ 23 named destinations out of 1000 (max. 500000)
+ 61 words of extra memory for PDF output out of 10000 (max. 10000000)
 

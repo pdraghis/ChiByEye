@@ -9,10 +9,12 @@
 \usepackage{listings}
 \usepackage{caption}
 \usepackage{titlesec}
+\usepackage{float} % Add this to your preamble
 
 \titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
 \pagestyle{fancy}
 \fancyhf{}
+\setlength{\headheight}{13.6pt} % Adjust head height to avoid fancyhdr warning
 \rhead{ChiByEye}
 \lhead{User Documentation}
 \rfoot{\thepage}
@@ -57,13 +59,30 @@ python xspec_plot_interface.py
 
 \section*{Main Interface}
 
-Upon launching, the main window will appear with an empty plot and a prompt to type in a model name (e.g., \texttt{powerlaw}, \texttt{diskbb}, etc.). The interface provides several options to load models and data:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/initial_screen.png}
+    \caption{The initial ChiByEye interface upon launch.}
+\end{figure}
 
 \begin{itemize}
     \item \textbf{Manual model entry:} Type the model expression and press \texttt{Enter}.
     \item \textbf{File $\rightarrow$ Load Model as XCM:} Load a model from an existing \texttt{.xcm} file.
     \item \textbf{File $\rightarrow$ Load Data as XCM:} Load both spectra and model from an XSPEC session file.
 \end{itemize}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/plot_after_changing_sliders.png}
+    \caption{Model plot after adjusting parameters using sliders.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/load_data_as_xcm.png}
+    \caption{Loading data and model from an XSPEC .xcm session file.}
+\end{figure}
 
 \noindent
 An example XCM file (\texttt{test\_file.xcm}) is provided to demonstrate functionality.
@@ -76,6 +95,24 @@ An example XCM file (\texttt{test\_file.xcm}) is provided to demonstrate functio
     \item \textbf{Freeze Axes:} Lock current axis limits for consistent comparison between plots.
     \item \textbf{Show Frozen Parameters:} Display parameters that are frozen in XSPEC.
 \end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/view_menu.png}
+    \caption{The View menu allows toggling interface features and parameter display.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/textboxes.png}
+    \caption{Switching between sliders and textboxes for parameter input.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/set_axes_limits.png}
+    \caption{Dialog for setting plot axes limits.}
+\end{figure}
 
 \section*{Buttons and Controls}
 
@@ -93,8 +130,35 @@ An example XCM file (\texttt{test\_file.xcm}) is provided to demonstrate functio
     \item \textbf{Plot Same Curve N Times:} Sweep a parameter across multiple values and show the resulting curves using a color map.
 \end{itemize}
 
-\noindent
-\textit{Note:} When switching data plot modes, the new plot may initially appear smaller or misaligned. Resizing the window resolves the issue.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/plot_menu.png}
+    \caption{The Plot menu enables selection of plot types and fitting options.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/plot_data-options.png}
+    \caption{Different data plot options: data-only, data+ratio, unfolded spectrum + delchi.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/plot_data_data+ratio.png}
+    \caption{Data+ratio plot mode.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/plot_data_eufspec+delchi.png}
+    \caption{Unfolded spectrum + delchi plot mode.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/include_background.png}
+    \caption{Option to include or exclude background in the plot.}
+\end{figure}
 
 \section*{Saving and Exporting}
 
@@ -111,6 +175,12 @@ An example XCM file (\texttt{test\_file.xcm}) is provided to demonstrate functio
     \item Default XSPEC fit settings are used unless otherwise modified.
     \item All parameter updates are immediately reflected in the XSPEC backend.
 \end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{documentation_images/set_number_of_cpus_for_parallel_fitting.png}
+    \caption{Setting the number of CPUs for parallel fitting.}
+\end{figure}
 
 \section*{Future Work}
 
