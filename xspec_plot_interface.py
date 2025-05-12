@@ -57,6 +57,8 @@ DEFAULT_SPACING = "linear"
 DEFAULT_CURVE_COUNT = 10
 Plot.area = True
 Plot.setRebin(10, 10, -1)
+Plot.xAxis = 'keV'
+Xset.parallel.leven = 1 # set number of cpus used in fitting to be 1 by default
 
 # continue fit without interrupting
 Fit.query = "yes"
@@ -119,38 +121,38 @@ class MainWindow(QMainWindow):
 
         # Add 'File' menu
         file_menu = menubar.addMenu('File')
-        load_model_xcm_action = QAction('Load Model as XCM', self)  # Renamed action
+        load_model_xcm_action = QAction('Load Model as XCM', self) 
         save_plot_action = QAction('Save Plot', self)
-        save_xcm_action = QAction('Save Parameters as XCM', self)  # New action
-        load_data_xcm_action = QAction('Load Data as XCM', self)  # New action
-        load_plot_style_action = QAction('Load Plot Style File', self)  # New action
+        save_xcm_action = QAction('Save Parameters as XCM', self)  
+        load_data_xcm_action = QAction('Load Data as XCM', self)
+        load_plot_style_action = QAction('Load Plot Style File', self)  
         exit_action = QAction('Exit', self)
-        restart_action = QAction('Restart', self)  # New action
-        file_menu.addAction(load_model_xcm_action)  # Updated action
+        restart_action = QAction('Restart', self)  
+        file_menu.addAction(load_model_xcm_action)  
         file_menu.addAction(save_plot_action)
-        file_menu.addAction(save_xcm_action)  # Add new action
-        file_menu.addAction(load_data_xcm_action)  # Add new action
-        file_menu.addAction(load_plot_style_action)  # Add new action
-        file_menu.addAction(restart_action)  # Add new action
+        file_menu.addAction(save_xcm_action)  
+        file_menu.addAction(load_data_xcm_action)  
+        file_menu.addAction(load_plot_style_action)  
+        file_menu.addAction(restart_action)  
         file_menu.addAction(exit_action)
 
-       # Add 'View' menu
+        # Add 'View' menu
         view_menu = menubar.addMenu('View')
         freeze_axes_action = QAction('Freeze Axes', self, checkable=True)
-        use_textboxes_action = QAction('Use Textboxes for Parameters', self, checkable=True)
+        use_textboxes_action = QAction('Use Sliders for Parameters', self, checkable=True)
         set_axes_limits_action = QAction('Set Axes Limits', self)
-        show_frozen_action = QAction('Show Frozen Parameters', self, checkable=True)  # New action
+        show_frozen_action = QAction('Show Frozen Parameters', self, checkable=True) 
 
         view_menu.addAction(freeze_axes_action)
         view_menu.addAction(use_textboxes_action)
         view_menu.addAction(set_axes_limits_action)
-        view_menu.addAction(show_frozen_action)  # Add new action
+        view_menu.addAction(show_frozen_action) 
 
         # Connect actions to their respective methods
         freeze_axes_action.triggered.connect(lambda: self.toggle_option('Freeze Axes'))
-        use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Textboxes for Parameters'))
+        use_textboxes_action.triggered.connect(lambda: self.toggle_option('Use Sliders for Parameters'))
         set_axes_limits_action.triggered.connect(self.set_axes_limits)
-        show_frozen_action.triggered.connect(lambda: self.toggle_option('Show Frozen Parameters'))  # Connect new action
+        show_frozen_action.triggered.connect(lambda: self.toggle_option('Show Frozen Parameters')) 
 
         # Add 'Plot' menu
         plot_menu = menubar.addMenu('Plot')
@@ -158,8 +160,8 @@ class MainWindow(QMainWindow):
         # Add actions to the 'Plot' menu
         plot_components_action = QAction('Plot Different Components', self, checkable=True)
         select_plot_action = QAction('Plot Model', self)
-        plot_n_times_action = QAction('Plot Same Curve N Times', self)  # New action
-        plot_data_action = QAction('Plot Data', self)  # New action
+        plot_n_times_action = QAction('Plot Same Curve N Times', self)  
+        plot_data_action = QAction('Plot Data', self)  
         include_background_action = QAction('Include Background For Data', self, checkable=True)
         plot_menu.addAction(plot_components_action)
         plot_menu.addAction(select_plot_action)
@@ -187,9 +189,9 @@ class MainWindow(QMainWindow):
         perform_fit_action.triggered.connect(self.perform_fit_threaded)
 
         # Connect actions to methods (placeholders)
-        load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  # Updated connection
+        load_model_xcm_action.triggered.connect(self.load_model_as_xcm)  
         save_plot_action.triggered.connect(self.save_plot)
-        save_xcm_action.triggered.connect(self.save_parameters_as_xcm)  # Connect new action
+        save_xcm_action.triggered.connect(self.save_parameters_as_xcm) 
         load_data_xcm_action.triggered.connect(self.load_data_as_xcm)  # Connect new action
         load_plot_style_action.triggered.connect(self.load_plot_style)  # Connect new action
         exit_action.triggered.connect(self.close)
@@ -255,7 +257,7 @@ class MainWindow(QMainWindow):
         self.include_background = False
         self.is_model_loaded = False
         self.what_to_plot = DEFAULT_PLOT_TYPE
-        self.use_textboxes_selected = False
+        self.use_textboxes_selected = True
         self.plot_components_selected = False
         self.freeze_axes_selected = False
         self.is_data_loaded = False
@@ -270,7 +272,11 @@ class MainWindow(QMainWindow):
         if not self.is_model_loaded:
             # Retrieve the model name from the textbox and initialize the model
             self.model_name = self.model_textbox.text().strip()
-            self.models = [Model(self.model_name)]
+            try:
+                self.models = [Model(self.model_name)]
+            except Exception as e:
+                QMessageBox.warning(self, "Invalid Model", f"Could not load model '{self.model_name}'.\nError: {str(e)}")
+                return  # Exit early if model is invalid
 
         try:
             # Clear existing sliders or textboxes
@@ -390,7 +396,9 @@ class MainWindow(QMainWindow):
             self.model_textbox.hide()
             # Show the rescale checkbox
             self.rescale_checkbox.show()
-            if self.is_data_loaded:
+            if self.plot_components_selected:
+                self.plot_different_components()
+            elif self.is_data_loaded:
                 self.plot_data()
             else:
                 self.update_plot()            
@@ -480,22 +488,22 @@ class MainWindow(QMainWindow):
         label.setText(f"{param.name}: {scaled_value:.3e}")
 
     def generate_plot(self):
-        if self.is_data_loaded:
-            self.plot_data()
-        elif self.plot_components_selected:
+        if self.plot_components_selected:
             self.plot_different_components()
+        elif self.is_data_loaded:
+            self.plot_data()
         else:
             # Ensure the model is set for the plot
             if not hasattr(self, 'models'):
                 self.load_model()
-            self.update_plot()
+            if hasattr(self, 'models'): # Check that loading the model worked
+                self.update_plot()
 
     def update_plot(self, plot_model=False):
         """
         Generate the plot using the current XSPEC model parameters.
         """
         Plot.device = '/null'  # Suppress plot output
-        Plot.xAxis = PLOT_X_AXIS
         Plot.xLog = PLOT_X_LOG
         Plot.yLog = PLOT_Y_LOG
 
@@ -583,7 +591,7 @@ class MainWindow(QMainWindow):
         else:
             if option_name == 'Show Frozen Parameters':
                 self.show_frozen_parameters = not getattr(self, 'show_frozen_parameters', False)
-            elif option_name == 'Use Textboxes for Parameters':
+            elif option_name == 'Use Sliders for Parameters':
                 self.use_textboxes_selected = not getattr(self, 'use_textboxes_selected', False)
             elif option_name == 'Plot Different Components':
                 self.plot_components_selected = not getattr(self, 'plot_components_selected', False)
@@ -982,9 +990,34 @@ class MainWindow(QMainWindow):
         def on_accept():
             selected_model = self.models[model_combo.currentIndex()]
             component, param_name = param_combo.currentData()
-            param_min = float(param_min_input.text())
-            param_max = float(param_max_input.text())
-            n = int(n_input.text())
+            param_obj = getattr(getattr(selected_model, component), param_name)
+
+            # Get hard min and max from XSPEC parameter
+            hard_min = param_obj.values[2]
+            hard_max = param_obj.values[5]
+
+            try:
+                param_min = float(param_min_input.text())
+                param_max = float(param_max_input.text())
+            except ValueError:
+                QMessageBox.warning(self, "Invalid Input", "Parameter min and max must be numbers.")
+                return
+
+            # Check that min < max and both are within hard limits
+            if not (hard_min <= param_min < param_max <= hard_max):
+                QMessageBox.warning(
+                    self,
+                    "Invalid Parameter Range",
+                    f"Parameter values must satisfy:\n"
+                    f"{hard_min} ≤ min < max ≤ {hard_max}"
+                )
+                return
+
+            try:
+                n = int(n_input.text())
+            except ValueError:
+                QMessageBox.warning(self, "Invalid Input", "Number of curves must be an integer.")
+                return
             spacing = spacing_combo.currentText()
             cmap_name = cmap_combo.currentText()
 
@@ -1012,6 +1045,13 @@ class MainWindow(QMainWindow):
             # Store the original parameter value
             original_value = param_obj.values[0]
 
+            # Determine the full energy range from all loaded spectra
+            if hasattr(self, 'xs') and len(self.xs) > 0:
+                emin = float(np.min([np.min(x) for x in self.xs if len(x)>0]))
+                emax = float(np.max([np.max(x) for x in self.xs if len(x)>0]))
+                # reset the model energy grid to cover every channel of every spectrum
+                AllModels.setEnergies(f"{emin} {emax} 1000 log")
+            
             # Plot the same curve N times with specified spacing and colors
             for i in range(n):
                 # Adjust the model parameter
@@ -1022,11 +1062,10 @@ class MainWindow(QMainWindow):
 
                 param_obj.values = [param_value] + param_obj.values[1:]
 
-                # Recalculate the model
-                Plot(self.what_to_plot)
-                x = Plot.x()
-                y = Plot.model()
-
+                # Recalculate the folded model on the new energy grid
+                Plot("model")
+                x = Plot.x()       # full energy axis from emin→emax
+                y = Plot.model()   # model evaluation at that grid
                 # Plot the curve
                 self.ax.plot(x, y, label=f'{param_name}={param_value:.2f}', linestyle='--', color=colors[i])
 
@@ -1047,13 +1086,9 @@ class MainWindow(QMainWindow):
 
             # Refresh canvas
             self.canvas.figure.tight_layout()
-        self.canvas.draw()
-        self.canvas.updateGeometry()
-        # Optionally, force resize if needed:
-        # if self.canvas.parent() is not None:
-        #     self.canvas.resize(self.canvas.parent().size())
-
-        dialog.accept()
+            self.canvas.draw()
+            self.canvas.updateGeometry()
+            dialog.accept()
 
         button_box.accepted.connect(on_accept)
         button_box.rejected.connect(dialog.reject)
