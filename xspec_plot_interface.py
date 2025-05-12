@@ -266,8 +266,14 @@ class MainWindow(QMainWindow):
 
     def load_model(self):
         """
-        Load the XSPEC model entered in the textbox, initialize UI elements (sliders or textboxes)
-        for model parameters, and update the plot.
+        Loads the XSPEC model entered in the textbox, initializes UI elements (sliders or textboxes)
+        for model parameters, and updates the plot.
+
+        Effects:
+            - Reads the model name from the textbox.
+            - Loads the XSPEC model and initializes sliders/textboxes for its parameters.
+            - Updates the plot and UI to reflect the loaded model.
+            - Shows error messages if loading fails.
         """
         if not self.is_model_loaded:
             # Retrieve the model name from the textbox and initialize the model
@@ -409,20 +415,24 @@ class MainWindow(QMainWindow):
 
     def create_lambda(self, param, textbox):
         """
-        Create a lambda function to update parameter values from a textbox.
+        Creates a lambda function to update parameter values from a textbox.
 
         Parameters:
-        param: The model parameter to update.
-        textbox: The QLineEdit widget containing the new parameter value.
+            param: The model parameter to update.
+            textbox: The QLineEdit widget containing the new parameter value.
 
         Returns:
-        A lambda function that updates the parameter value.
+            function: A lambda function that updates the parameter value.
         """
         return lambda: setattr(param, 'values', [float(textbox.text())])
 
     def clear_sliders(self):
         """
-        Clear all sliders and labels from the layout, and reset parameter lists.
+        Clears all sliders and labels from the layout, and resets parameter lists.
+
+        Effects:
+            - Removes all parameter sliders/textboxes and labels from the UI.
+            - Resets internal lists tracking parameter widgets.
         """
         left_panel = self.centralWidget().layout().itemAt(0).widget().widget().layout()
         for slider, label in zip(self.param_sliders, self.param_labels):
@@ -446,15 +456,16 @@ class MainWindow(QMainWindow):
 
     def create_slider(self, param):
         """
-        Create a slider for a given model parameter, scaled for precision.
+        Creates a slider for a given model parameter, scaled for precision.
 
         Parameters:
-        param: The model parameter for which the slider is created.
+            param: The model parameter for which the slider is created.
 
         Returns:
-        slider: The created QSlider object.
-        scale_factor: The factor used to scale the parameter value.
-        precision_factor: The factor used to increase slider precision.
+            tuple: (slider, scale_factor, precision_factor)
+                slider: The created QSlider object.
+                scale_factor: The factor used to scale the parameter value.
+                precision_factor: The factor used to increase slider precision.
         """
         max_value = param.values[5]
         scale_factor = 10 ** int(np.floor(np.log10(max_value))) if max_value > 0 else 1
@@ -474,20 +485,31 @@ class MainWindow(QMainWindow):
 
     def update_param_label(self, value, param, label, scale_factor, precision_factor):
         """
-        Update the label to reflect the current value of the parameter.
+        Updates the label to reflect the current value of the parameter.
 
         Parameters:
-        - value: The current value of the slider.
-        - param: The parameter associated with the slider.
-        - label: The QLabel to update.
-        - scale_factor: The scale factor for adjusting slider values.
-        - precision_factor: The precision factor for slider values.
+            value (int): The current value of the slider.
+            param: The parameter associated with the slider.
+            label: The QLabel to update.
+            scale_factor (float): The scale factor for adjusting slider values.
+            precision_factor (float): The precision factor for slider values.
+
+        Effects:
+            - Updates the parameter value in XSPEC.
+            - Updates the label text in the UI.
         """
         scaled_value = (value / precision_factor) * scale_factor
         param.values = [scaled_value] + param.values[1:]
         label.setText(f"{param.name}: {scaled_value:.3e}")
 
     def generate_plot(self):
+        """
+        Generates the plot based on the current state (model, data, or components).
+
+        Effects:
+            - Calls the appropriate plotting function depending on the UI state.
+            - Updates the plot area.
+        """
         if self.plot_components_selected:
             self.plot_different_components()
         elif self.is_data_loaded:
@@ -501,7 +523,14 @@ class MainWindow(QMainWindow):
 
     def update_plot(self, plot_model=False):
         """
-        Generate the plot using the current XSPEC model parameters.
+        Generates the plot using the current XSPEC model parameters.
+
+        Parameters:
+            plot_model (bool): If True, always plot the model regardless of loaded data.
+
+        Effects:
+            - Calls XSPEC Plot to generate model or data plots.
+            - Updates the matplotlib canvas with the new plot.
         """
         Plot.device = '/null'  # Suppress plot output
         Plot.xLog = PLOT_X_LOG
@@ -571,7 +600,12 @@ class MainWindow(QMainWindow):
 
     def save_plot(self):
         """
-        Save the current plot image to a file selected by the user.
+        Saves the current plot image to a file selected by the user.
+
+        Effects:
+            - Opens a file dialog for the user to select a save location.
+            - Saves the plot as a PNG file.
+            - Shows a confirmation message.
         """
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Plot Image", "", "PNG Files (*.png);;All Files (*)", options=options)
@@ -581,10 +615,14 @@ class MainWindow(QMainWindow):
 
     def toggle_option(self, option_name):
         """
-        Toggle the selection state of a given option.
+        Toggles the selection state of a given option and updates the UI accordingly.
 
         Parameters:
-        - option_name (str): The name of the option to toggle.
+            option_name (str): The name of the option to toggle.
+
+        Effects:
+            - Updates internal state for the given option.
+            - Reloads the model and UI if necessary.
         """
         if option_name == 'Freeze Axes':
             self.freeze_axes_selected = not getattr(self, 'freeze_axes_selected', False)
@@ -601,7 +639,12 @@ class MainWindow(QMainWindow):
 
     def save_parameters_as_xcm(self):
         """
-        Save the current model parameters to an XCM file selected by the user.
+        Saves the current model parameters to an XCM file selected by the user.
+
+        Effects:
+            - Opens a file dialog for the user to select a save location.
+            - Saves the XSPEC model parameters to an XCM file.
+            - Shows a confirmation message.
         """
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Parameters as XCM", "", "XCM Files (*.xcm);;All Files (*)", options=options)
@@ -611,7 +654,12 @@ class MainWindow(QMainWindow):
 
     def load_model_as_xcm(self):
         """
-        Open an XCM file and load the model parameters into the application.
+        Opens an XCM file and loads the model parameters into the application.
+
+        Effects:
+            - Opens a file dialog for the user to select an XCM file.
+            - Loads the XSPEC model parameters from the file.
+            - Updates the UI to reflect the loaded model.
         """
         self.is_model_loaded = True
         options = QFileDialog.Options()
@@ -637,7 +685,12 @@ class MainWindow(QMainWindow):
 
     def load_data_as_xcm(self):
         """
-        Load data from an XCM file and plot it on the canvas.
+        Loads data from an XCM file and plots it on the canvas.
+
+        Effects:
+            - Opens a file dialog for the user to select an XCM file.
+            - Loads XSPEC data and model from the file.
+            - Updates the UI and plot with the loaded data.
         """
         # Open a file dialog to select an XCM file
         file_path, _ = QFileDialog.getOpenFileName(self, "Open XCM File", "", "XCM Files (*.xcm)")
@@ -709,7 +762,11 @@ class MainWindow(QMainWindow):
 
     def set_axes_limits(self):
         """
-        Open a dialog to set the axes limits.
+        Opens a dialog to set the axes limits for the plot.
+
+        Effects:
+            - Displays a dialog for the user to input axis limits.
+            - Calls apply_axes_limits() if confirmed.
         """
         dialog = QDialog(self)
         dialog.setWindowTitle('Set Axes Limits')
@@ -752,14 +809,19 @@ class MainWindow(QMainWindow):
 
     def apply_axes_limits(self, x_min, x_max, y_min, y_max, dialog):
         """
-        Apply the axes limits from the dialog.
+        Applies the axes limits from the dialog.
 
         Parameters:
-        - x_min (str): The minimum x-axis limit.
-        - x_max (str): The maximum x-axis limit.
-        - y_min (str): The minimum y-axis limit.
-        - y_max (str): The maximum y-axis limit.
-        - dialog (QDialog): The dialog instance to close upon successful application.
+            x_min (str): The minimum x-axis limit.
+            x_max (str): The maximum x-axis limit.
+            y_min (str): The minimum y-axis limit.
+            y_max (str): The maximum y-axis limit.
+            dialog (QDialog): The dialog instance to close upon successful application.
+
+        Effects:
+            - Sets the axes limits on the plot.
+            - Updates the XSPEC model energy grid.
+            - Closes the dialog.
         """
         try:
             if isinstance(self.ax, list):
@@ -797,7 +859,11 @@ class MainWindow(QMainWindow):
 
     def plot_different_components(self):
         """
-        Plot the different components of the model separately.
+        Plots the different components of the model separately.
+
+        Effects:
+            - Plots each model component individually on the canvas.
+            - Optionally overlays data if loaded.
         """
         if not hasattr(self, 'models') or not self.models:
             QMessageBox.warning(self, 'No Model Loaded', 'Please load a model first.')
@@ -882,7 +948,11 @@ class MainWindow(QMainWindow):
 
     def open_select_plot_dialog(self):
         """
-        Open a dialog to select what to plot.
+        Opens a dialog to select what to plot (model, emodel, eemodel).
+
+        Effects:
+            - Displays a dialog for the user to select the plot type.
+            - Updates the plot accordingly.
         """
         dialog = QDialog(self)
         dialog.setWindowTitle('Select What to Plot')
@@ -910,7 +980,12 @@ class MainWindow(QMainWindow):
 
     def plot_same_curve_n_times(self):
         """
-        Display a dialog to input parameters and plot the same curve multiple times for a selected model.
+        Displays a dialog to input parameters and plot the same curve multiple times for a selected model parameter.
+
+        Effects:
+            - Opens a dialog for the user to select a parameter, range, and number of curves.
+            - Plots the model for each value of the parameter over the specified range.
+            - Overlays all curves on the same plot.
         """
         if not hasattr(self, 'models') or not self.models:
             QMessageBox.warning(self, 'No Models Loaded', 'Please load models first.')
@@ -1097,7 +1172,10 @@ class MainWindow(QMainWindow):
 
     def restart_application(self):
         """
-        Restart the application to its initial state.
+        Restarts the application to its initial state.
+
+        Effects:
+            - Closes the current application and starts a new instance.
         """
         self.close()
         QCoreApplication.quit()
@@ -1105,7 +1183,11 @@ class MainWindow(QMainWindow):
 
     def open_plot_data_dialog(self):
         """
-        Open a dialog to select data plotting options.
+        Opens a dialog to select data plotting options.
+
+        Effects:
+            - Displays a dialog for the user to select how to plot the data.
+            - Updates the plot accordingly.
         """
         if not self.is_data_loaded:
             QMessageBox.warning(self, 'No Data Loaded', 'Please load data first.')
@@ -1137,7 +1219,11 @@ class MainWindow(QMainWindow):
 
     def plot_data(self):
         """
-        Plot the data based on the selected option.
+        Plots the data based on the selected option.
+
+        Effects:
+            - Plots the loaded data and model in the selected format (data, data+ratio, eufspec+delchi).
+            - Updates the plot area.
         """
         if not hasattr(self, 'data_plot_option'):
             self.data_plot_option = 'data'
@@ -1316,7 +1402,11 @@ class MainWindow(QMainWindow):
 
     def rescale_plot(self):
         """
-        Rescale the y-axis limits of the plot based on the checkbox state.
+        Rescales the y-axis limits of the plot based on the checkbox state.
+
+        Effects:
+            - Adjusts the y-axis limits to a scaled range.
+            - Updates the plot area.
         """
         if isinstance(self.ax, list):
             ax = self.ax[0]
@@ -1334,7 +1424,12 @@ class MainWindow(QMainWindow):
 
     def load_plot_style(self):
         """
-        Load a matplotlib style file and apply the configurations to the plots.
+        Loads a matplotlib style file and applies the configurations to the plots.
+
+        Effects:
+            - Opens a file dialog for the user to select a style file.
+            - Applies the style to all plots.
+            - Updates the plot area.
         """
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "Load Plot Style File", "", "Style Files (*.mplstyle);;All Files (*)", options=options)
@@ -1349,8 +1444,11 @@ class MainWindow(QMainWindow):
     def perform_fit_threaded(self):
         """
         Starts the fitting process in a separate thread using QThread and FitWorker.
-        This prevents the GUI from freezing during long-running fits and allows the user to stop the fit.
-        Shows a modal dialog with a stop button while the fit is running.
+
+        Effects:
+            - Runs the XSPEC fit in a background thread.
+            - Shows a modal dialog with a stop button while the fit is running.
+            - Allows the user to stop the fit.
         """
         # Create an event to signal the worker to stop if requested
         self.fit_stop_event = threading.Event()
@@ -1374,6 +1472,14 @@ class MainWindow(QMainWindow):
         self.fit_dialog.show()
 
     def stop_fit(self):
+        """
+        Signals the worker thread to stop the fit and closes the dialog.
+
+        Effects:
+            - Sets a flag/event to stop the fit.
+            - Closes the fit dialog.
+            - Shows a message to the user.
+        """
         # Called when the user clicks the stop button in the dialog.
         # Signals the worker thread to stop by setting the event.
         if hasattr(self, 'fit_stop_event'):
@@ -1387,6 +1493,17 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Fit Stopped", "The fit was stopped by the user.")
 
     def fit_finished(self, exception):
+        """
+        Handles the completion of the fit process.
+
+        Parameters:
+            exception (Exception or None): Exception raised during fitting, or None if successful.
+
+        Effects:
+            - Closes the fit dialog.
+            - Updates the plot if the fit completed successfully.
+            - Shows a message to the user.
+        """
         # Called when the worker signals that the fit is finished (success or failure).
         # Ensures the dialog is closed and handles the result or any exception.
         if hasattr(self, 'fit_dialog'):
@@ -1405,8 +1522,12 @@ class MainWindow(QMainWindow):
 
     def open_set_cpus_dialog(self):
         """
-        Open a dialog allowing the user to select the number of CPUs for parallel fitting.
-        Sets Xset.parallel.leven accordingly.
+        Opens a dialog allowing the user to select the number of CPUs for parallel fitting.
+
+        Effects:
+            - Displays a dialog for the user to select the number of CPUs.
+            - Updates XSPEC's parallel fitting setting.
+            - Shows a confirmation message.
         """
         from PyQt5.QtWidgets import QInputDialog
         # Get current value if available, else default to 1
