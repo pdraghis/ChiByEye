@@ -275,9 +275,15 @@ class MainWindow(QMainWindow):
             - Updates the plot and UI to reflect the loaded model.
             - Shows error messages if loading fails.
         """
+        if not hasattr(self, 'model_textbox') or self.model_textbox is None:
+            QMessageBox.warning(self, "Error", "Model textbox not initialized.")
+            return
         if not self.is_model_loaded:
             # Retrieve the model name from the textbox and initialize the model
             self.model_name = self.model_textbox.text().strip()
+            if not self.model_name:
+                QMessageBox.warning(self, "Invalid Model", "Please enter a model name.")
+                return
             try:
                 self.models = [Model(self.model_name)]
             except Exception as e:
@@ -467,21 +473,25 @@ class MainWindow(QMainWindow):
                 scale_factor: The factor used to scale the parameter value.
                 precision_factor: The factor used to increase slider precision.
         """
-        max_value = param.values[5]
-        scale_factor = 10 ** int(np.floor(np.log10(max_value))) if max_value > 0 else 1
+        try:
+            max_value = param.values[5]
+            scale_factor = 10 ** int(np.floor(np.log10(max_value))) if max_value > 0 else 1
 
-        # Increase precision by scaling to a smaller range
-        precision_factor = SLIDER_PRECISION_FACTOR  # Adjust this to increase slider precision
-        min_value = int(param.values[2] / scale_factor * precision_factor)
-        max_value = int(param.values[5] / scale_factor * precision_factor)
-        initial_value = int(param.values[0] / scale_factor * precision_factor)
+            # Increase precision by scaling to a smaller range
+            precision_factor = SLIDER_PRECISION_FACTOR  # Adjust this to increase slider precision
+            min_value = int(param.values[2] / scale_factor * precision_factor)
+            max_value = int(param.values[5] / scale_factor * precision_factor)
+            initial_value = int(param.values[0] / scale_factor * precision_factor)
 
-        slider = QSlider(Qt.Horizontal)
-        slider.setMinimum(min_value)
-        slider.setMaximum(max_value)
-        slider.setValue(initial_value)
-        slider.setSingleStep(1)
-        return slider, scale_factor, precision_factor
+            slider = QSlider(Qt.Horizontal)
+            slider.setMinimum(min_value)
+            slider.setMaximum(max_value)
+            slider.setValue(initial_value)
+            slider.setSingleStep(1)
+            return slider, scale_factor, precision_factor
+        except Exception as e:
+            QMessageBox.warning(None, "Slider Error", f"Could not create slider for parameter: {str(e)}")
+            return QSlider(Qt.Horizontal), 1, 1
 
     def update_param_label(self, value, param, label, scale_factor, precision_factor):
         """
@@ -498,9 +508,12 @@ class MainWindow(QMainWindow):
             - Updates the parameter value in XSPEC.
             - Updates the label text in the UI.
         """
-        scaled_value = (value / precision_factor) * scale_factor
-        param.values = [scaled_value] + param.values[1:]
-        label.setText(f"{param.name}: {scaled_value:.3e}")
+        try:
+            scaled_value = (value / precision_factor) * scale_factor
+            param.values = [scaled_value] + param.values[1:]
+            label.setText(f"{param.name}: {scaled_value:.3e}")
+        except Exception as e:
+            QMessageBox.warning(None, "Parameter Update Error", f"Could not update parameter: {str(e)}")
 
     def generate_plot(self):
         """
@@ -510,16 +523,19 @@ class MainWindow(QMainWindow):
             - Calls the appropriate plotting function depending on the UI state.
             - Updates the plot area.
         """
-        if self.plot_components_selected:
-            self.plot_different_components()
-        elif self.is_data_loaded:
-            self.plot_data()
-        else:
-            # Ensure the model is set for the plot
-            if not hasattr(self, 'models'):
-                self.load_model()
-            if hasattr(self, 'models'): # Check that loading the model worked
-                self.update_plot()
+        try:
+            if self.plot_components_selected:
+                self.plot_different_components()
+            elif self.is_data_loaded:
+                self.plot_data()
+            else:
+                # Ensure the model is set for the plot
+                if not hasattr(self, 'models'):
+                    self.load_model()
+                if hasattr(self, 'models'): # Check that loading the model worked
+                    self.update_plot()
+        except Exception as e:
+            QMessageBox.critical(self, "Plot Error", f"Could not generate plot: {str(e)}")
 
     def update_plot(self, plot_model=False):
         """
@@ -607,11 +623,14 @@ class MainWindow(QMainWindow):
             - Saves the plot as a PNG file.
             - Shows a confirmation message.
         """
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Plot Image", "", "PNG Files (*.png);;All Files (*)", options=options)
-        if file_path:
-            self.canvas.figure.savefig(file_path)
-            QMessageBox.information(self, "Save Plot", f"Plot saved to {file_path}")
+        try:
+            options = QFileDialog.Options()
+            file_path, _ = QFileDialog.getSaveFileName(self, "Save Plot Image", "", "PNG Files (*.png);;All Files (*)", options=options)
+            if file_path:
+                self.canvas.figure.savefig(file_path)
+                QMessageBox.information(self, "Save Plot", f"Plot saved to {file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", f"Could not save plot: {str(e)}")
 
     def toggle_option(self, option_name):
         """
@@ -1529,13 +1548,16 @@ class MainWindow(QMainWindow):
             - Updates XSPEC's parallel fitting setting.
             - Shows a confirmation message.
         """
-        from PyQt5.QtWidgets import QInputDialog
-        # Get current value if available, else default to 1
-        current_cpus = getattr(Xset.parallel, 'leven', 1)
-        num, ok = QInputDialog.getInt(self, "Set Number of CPUs", "Number of CPUs to use for parallel fitting:", value=current_cpus, min=1, max=64)
-        if ok:
-            Xset.parallel.leven = num
-            QMessageBox.information(self, "Set Number of CPUs", f"XSPEC will now use {num} CPU(s) for parallel fitting.")
+        try:
+            from PyQt5.QtWidgets import QInputDialog
+            # Get current value if available, else default to 1
+            current_cpus = getattr(Xset.parallel, 'leven', 1)
+            num, ok = QInputDialog.getInt(self, "Set Number of CPUs", "Number of CPUs to use for parallel fitting:", value=current_cpus, min=1, max=64)
+            if ok:
+                Xset.parallel.leven = num
+                QMessageBox.information(self, "Set Number of CPUs", f"XSPEC will now use {num} CPU(s) for parallel fitting.")
+        except Exception as e:
+            QMessageBox.critical(self, "CPU Setting Error", f"Could not set number of CPUs: {str(e)}")
 
 
 # Create the PyQt application, which can handle arguments in sys.argv
